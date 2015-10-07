@@ -3,14 +3,7 @@
 # using a serie of electromigration experiments.
 # September 2015
 # Emmanuel Chery
-# Version 0.8 RC
-
-# Required Packages
-library('ggplot2')
-library('MASS')
-library('scales')
-library('grid')
-
+# Version 0.2 
 
 
 Ranking <- function(TTF)
@@ -162,7 +155,7 @@ StackData <- function(DataTable1, DataTable2)
 }
 
 
-CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title="", Scale="Lognormale", ErrorBands=TRUE)
+CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title="", Scale="Lognormale", ErrorBands=TRUE, Save=TRUE)
 # Use the table prepared with CreateDataFrame and create the probability plot.
 # Default is Lonormale scale but Weibull is available as an option.
 {
@@ -252,15 +245,17 @@ CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title
     print(Graph)
 
     # Save as png
-    if (Title != ""){
-        ggsave(paste(Title,"png",sep="."))
-    } else {
-        ggsave("Chart.png")
+    if (Save == TRUE){
+        if (Title != ""){
+            ggsave(paste(Title,"png",sep="."))
+        } else {
+            ggsave("Chart.png")
+        }
     }
 }
 
 
-BlackAnalysis <- function(Scale="Lognormale",ErrorBand=TRUE)
+BlackAnalysis <- function(Scale="Lognormale",ErrorBand=TRUE,Save=TRUE)
 # Main function calling the other. The one to use to open all the files.
 # Open all the exportfiles from the workfolder
 {
@@ -291,7 +286,7 @@ BlackAnalysis <- function(Scale="Lognormale",ErrorBand=TRUE)
     } else { # case 2, there are no files available
           print("You need to create the export files first!")
     }
-    CreateGraph(DataTable,ModelDataTable,ErrorDataTable,StructureName,Scale,ErrorBand)
+    CreateGraph(DataTable,ModelDataTable,ErrorDataTable,StructureName,Scale,ErrorBand,Save)
     #return(DataTable)
 }
 
