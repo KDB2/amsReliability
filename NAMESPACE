@@ -1,1 +1,3 @@
-exportPattern("^[[:alpha:]]+")
+export("BlackAnalysis", "CreateExportFiles")
+
+importFrom(ggplot2,MASS,scales,grid)
