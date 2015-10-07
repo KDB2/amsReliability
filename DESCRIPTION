@@ -8,4 +8,4 @@ Maintainer: <emmanuel.chery@ams.com>
 Description: Allow the analysis of process reliability data. Key parameters of reliability models are extracted.
 License: GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 LazyData: TRUE
-Depends: ggplot2 MASS scales grid
+Depends: ggplot2,MASS,scales,grid
