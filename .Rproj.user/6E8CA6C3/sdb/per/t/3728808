@@ -1,0 +1,17 @@
+{
+    "contents" : "\\name{amsReliability-package}\n\\alias{amsReliability-package}\n\\alias{amsReliability}\n\\docType{package}\n\\title{\n\\packageTitle{amsReliability}\n}\n\\description{\n\\packageDescription{amsReliability}\n}\n\\details{\n\\bold{CreateExportFiles()}: Use degradation and TCR files to create respective exportfiles. No arguments needed with this function.\n\n\\bold{BlackAnalysis(Scale=\"Lognormale\",ErrorBand=TRUE,Save=TRUE)}: Using the exportfiles previously generated, perform the analysis of electromigration data. Extraction of Black parameters is performed.\n}\n\\author{\n\\packageAuthor{amsReliability}\n\nMaintainer: \\packageMaintainer{amsReliability}\n}\n\\references{\n\n}\n\n\\keyword{ package }\n\\seealso{\n}\n\\examples{\n\n}\n",
+    "created" : 1444228496654.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2729720262",
+    "id" : "3728808",
+    "lastKnownWriteTime" : 1444229542,
+    "path" : "~/Sandbox/amsReliability/man/amsReliability-package.Rd",
+    "project_path" : "man/amsReliability-package.Rd",
+    "properties" : {
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "type" : "r_doc"
+}
