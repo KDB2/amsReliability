@@ -9,3 +9,4 @@ Description: Allow the analysis of process reliability data. Key parameters of r
 License: GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 LazyData: TRUE
 Depends: ggplot2,MASS,scales,grid
+Encoding="UTF8" 
