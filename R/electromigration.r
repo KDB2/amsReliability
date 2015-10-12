@@ -1,9 +1,10 @@
 # Script collection for ams AG process reliability team.
-# Allow to display and process electromigration data. 
+# Allow to display and process electromigration data.
 # Extraction of Black's parameters is performed.
 # September 2015
 # Emmanuel Chery
-# Version 0.2 
+# Version 0.3
+
 
 
 Ranking <- function(TTF)
@@ -93,55 +94,45 @@ ReadDataAce <- function(FileName, Scale="Lognormale")
 }
 
 
-Modelization <- function(DataTable, Type="Lognormale")
-# Using experimental data the theoretical distribution is generated
-# Default is Lonormale scale but Weibull is available as an option.
-{
-    # Condition, Stress and Temperature stickers
-    ModelCondition <- DataTable[1,"Conditions"]
-    ModelStress <- DataTable[1,"Stress"]
-    ModelTemperature <- DataTable[1,"Temperature"]
-
-    # x axis limits are calculated
-    lim <- range(DataTable$TTF)
-    lim.high <- 10^(ceiling(log(lim[2],10)))
-    lim.low <- 10^(floor(log(lim[1],10)))
-    # Generation of a vector for the calculation of the model. 200pts/decades
-    x <- 10^seq(log(lim.low,10),log(lim.high,10),0.005)
-    # Model calculation with the experimental TTF
-    if (Type=="Weibull") { # Weibull
-          #x <- 10^seq(log(lim.low,10),log(lim.high,10),0.00005)
-          fit <- fitdistr(DataTable$TTF[DataTable$Status==1],"weibull")
-          Shape <- fit$estimate[1]  # Beta
-          Scale <- fit$estimate[2]  # Characteristic time (t_63%)
-          y <- CalculProbability(pweibull(x, Shape, Scale),"Weibull")
-    } else { # Lognormale
-          fit <- fitdistr(DataTable$TTF[DataTable$Status==1],"lognormal")
-          Scale <- fit$estimate[1]  # meanlog
-          Shape <- fit$estimate[2]  # sdlog
-          y <- CalculProbability(plnorm(x, Scale, Shape),"Lognormale")
-    }
-
-    ModelDataTable <- data.frame('TTF'=x,'Status'=1,'Probability'=y,'Conditions'=ModelCondition,'Stress'=ModelStress,'Temperature'=ModelTemperature)
-    return(ModelDataTable)
-}
-
-
 ErrorEstimation <- function(ExpDataTable, ModelDataTable, ConfidenceValue=0.95)
 # Genration of confidence intervals
 {
-    NbData <- length(ExpDataTable$TTF)
-    if (NbData > 30) {
-        mZP_Value <- qnorm((1 - ConfidenceValue) / 2) # Normal case. Valid if sample size > 30.
-    } else {
-        mZP_Value <- qt((1 - ConfidenceValue) / 2, df=(NbData -1) ) # t-test statistic for low sample size
-    }
-    CDF <- pnorm(ModelDataTable$Probability) # TO BE CHECKED
-    sef <- sqrt(CDF * (1 - CDF)/NbData) # TO BE CHECKED
-    LowerLimit <- qnorm(CDF - sef * mZP_Value)
-    HigherLimit <- qnorm(CDF + sef * mZP_Value)
+    # list of conditions
+    ListConditions <- levels(ExpDataTable$Conditions)
 
-    ConfidenceDataTable <- data.frame('TTF'=ModelDataTable$TTF,'LowerLimit'=LowerLimit,'HigherLimit'=HigherLimit,'Conditions'=ModelDataTable$Conditions)
+    if (length(ListConditions) != 0){
+          # DataFrame initialisation
+          NbData <- length(ExpDataTable$TTF[ExpDataTable$Conditions == ListConditions[1]])
+          if (NbData > 30) {
+              mZP_Value <- qnorm((1 - ConfidenceValue) / 2) # Normal case. Valid if sample size > 30.
+          } else {
+              mZP_Value <- qt((1 - ConfidenceValue) / 2, df=(NbData -1) ) # t-test statistic for low sample size
+          }
+          CDF <- pnorm(ModelDataTable$Probability[ModelDataTable$Conditions == ListConditions[1]])
+          sef <- sqrt(CDF * (1 - CDF)/NbData) # TO BE CHECKED
+          LowerLimit <- qnorm(CDF - sef * mZP_Value)
+          HigherLimit <- qnorm(CDF + sef * mZP_Value)
+
+          ConfidenceDataTable <- data.frame('TTF'=ModelDataTable$TTF[ModelDataTable$Conditions == ListConditions[1]],'LowerLimit'=LowerLimit,'HigherLimit'=HigherLimit,'Conditions'=ListConditions[1])
+
+          if (length(ListConditions) > 1) {
+              for (i in 2:length(ListConditions)){
+                NbData <- length(ExpDataTable$TTF[ExpDataTable$Conditions == ListConditions[i]])
+                if (NbData > 30) {
+                    mZP_Value <- qnorm((1 - ConfidenceValue) / 2) # Normal case. Valid if sample size > 30.
+                } else {
+                    mZP_Value <- qt((1 - ConfidenceValue) / 2, df=(NbData -1) ) # t-test statistic for low sample size
+                }
+                CDF <- pnorm(ModelDataTable$Probability[ModelDataTable$Conditions == ListConditions[i]])
+                sef <- sqrt(CDF * (1 - CDF)/NbData) # TO BE CHECKED
+                LowerLimit <- qnorm(CDF - sef * mZP_Value)
+                HigherLimit <- qnorm(CDF + sef * mZP_Value)
+
+                NewData <- data.frame('TTF'=ModelDataTable$TTF[ModelDataTable$Conditions == ListConditions[i]],'LowerLimit'=LowerLimit,'HigherLimit'=HigherLimit,'Conditions'=ListConditions[i])
+                ConfidenceDataTable <- StackData(ConfidenceDataTable,NewData)
+              }
+          }
+      }
     return(ConfidenceDataTable)
 }
 
@@ -152,6 +143,85 @@ StackData <- function(DataTable1, DataTable2)
     NewDataTable <- merge(DataTable1, DataTable2, all=TRUE)
     NewDataTable <- NewDataTable[order(NewDataTable$"Conditions"),]
     return(NewDataTable)
+}
+
+
+BlackModelization <- function(DataTable, DeviceID)
+# Modelize the data using Black equation
+# Extract the parameters: A, n and Ea
+# as well as the lognormal slope
+# TTF = A j^(-n) exp(Ea/kT + Scale * Proba)
+# Proba in standard deviations
+# Data(TTF,Status,Probability,Conditions,Stress,Temperature)
+{
+    # Read the list of device to retrieve the section parameters.
+    ListDevice <- read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/0.18_um_Technology/0.18 FabB/BEOL/Elmig/ListDeviceName.txt")
+    W <- ListDevice$Width[ListDevice$Device==DeviceID] # micrometers
+    H <- ListDevice$Width[ListDevice$Device==DeviceID] # micrometers
+    S <- W*H*1E-12 # m^2
+
+    # Physical constants
+    k <- 1.38E-23 # Boltzmann
+    e <- 1.6E-19 # electron charge
+
+
+    # Black model / Log scale: use of log10 to avoid giving too much importance to data with a high TTF
+    nls.control(maxiter = 100, tol = 1e-15, minFactor = 1/1024, printEval = FALSE, warnOnly = FALSE)
+    Model <- nls(log10(TTF) ~ log10(exp(A)*(Stress*1E-3/S)^(-n)*exp((Ea*e)/(k*(Temperature+273.15))+Scale*Probability)), DataTable, start=list(A=30,n=1,Ea=0.7,Scale=0.3))#,trace = T)
+    #Model <- nls(TTF ~ exp(A)*(Stress*1E-3/S)^(-n)*exp((Ea*e)/(k*(Temperature+273.15))+Scale*Probability), DataTable, start=list(A=30,n=1,Ea=0.7,Scale=0.3))
+    # Parameters Extraction
+    A <- coef(Model)[1]
+    n <- coef(Model)[2]
+    Ea <-coef(Model)[3]
+    Scale <- coef(Model)[4]
+    # Residual Sum of Squares
+    RSS <- sum(resid(Model)^2)
+    # Total Sum of Squares: TSS <- sum((TTF - mean(TTF))^2))
+    TSS <- sum(sapply(split(DataTable[,1],DataTable$Conditions),function(x) sum((x-mean(x))^2)))
+    Rsq <- 1-RSS/TSS # R-squared measure
+
+
+    # Using the parameters and the conditions, theoretical distributions are created
+    ListConditions <- levels(DataTable$Conditions)
+    # Initialisation with first condition
+    #####################################
+
+    # Conditions
+    Condition <- ListConditions[1]
+    I <- DataTable$Stress[DataTable$Conditions==ListConditions[1]][1]
+    Temp <- DataTable$Temperature[DataTable$Conditions==ListConditions[1]][1]  # °C
+
+    # y axis points are calculated. (limits 0.01% -- 99.99%) Necessary to have nice confidence bands.
+    Proba <- seq(qnorm(0.0001),qnorm(0.9999),0.05)
+    # TTF calculation
+    TTF <- exp(A)*(I*0.001/S)^(-n)*exp((Ea*e)/(k*(273.15+Temp))+ Proba * Scale)
+
+    # Dataframe creation
+    ModelDataTable <- data.frame('TTF'=TTF,'Status'=1,'Probability'=Proba,'Conditions'=Condition,'Stress'=I,'Temperature'=Temp)
+
+
+    # Loop to create the DataFrame
+    if ( length(ListConditions) > 1 ){
+        for (i in 2:length(ListConditions)){
+
+            # Conditions
+            Condition <- ListConditions[i]
+            I <- DataTable$Stress[DataTable$Conditions==ListConditions[i]][1]
+            Temp <- DataTable$Temperature[DataTable$Conditions==ListConditions[i]][1]  # °C
+
+            # TTF calculation
+            TTF <- exp(A)*(I*0.001/S)^(-n)*exp((Ea*e)/(k*(273.15+Temp))+ Proba * Scale)
+
+            # Dataframe creation
+            NewData <- data.frame('TTF'=TTF,'Status'=1,'Probability'=Proba,'Conditions'=Condition,'Stress'=I,'Temperature'=Temp)
+
+            #Stack in 1 global table
+            ModelDataTable <- StackData(ModelDataTable,NewData)
+        }
+    }
+    write.table(data.frame('A'=A,'n'=n,'Ea'=Ea,'Scale'=Scale,"RSS"=RSS,"Rsq=",Rsq),"fit.txt",quote=FALSE,sep="\t")
+    print(paste("Ea=",Ea,"eV, n=",n,", A=",A," Scale=",Scale," RSS=",RSS," Rsq=",Rsq,sep=""))
+    return(ModelDataTable)
 }
 
 
@@ -261,33 +331,27 @@ BlackAnalysis <- function(Scale="Lognormale",ErrorBand=TRUE,Save=TRUE)
 {
     #rm(list=ls())
     ListFiles <- list.files(pattern="*exportfile.txt")
-    StructureName <- strsplit(ListFiles[1],split="_")[[1]][2]
+    DeviceID <- strsplit(ListFiles[1],split="_")[[1]][2]
     # case 1, there are one or several files available
     if (length(ListFiles) != 0){
           # Import the first file to create the 3 dataframes
           DataTable <- ReadDataAce(ListFiles[1],Scale)
-          ModelDataTable <- Modelization(DataTable,Scale)
-          ErrorDataTable <- ErrorEstimation(DataTable,ModelDataTable)
 
           # Let's now check if other files are available
           if (length(ListFiles) > 1){
                 # loop to open all the files and stack them in the dataframe
                 for (i in 2:length(ListFiles)){
                     NewDataTable <- ReadDataAce(ListFiles[i],Scale)
-                    NewModelDataTable <- Modelization(NewDataTable,Scale)
-                    NewErrorDataTable <- ErrorEstimation(NewDataTable,NewModelDataTable)
-
                     # Merging the tables
                     DataTable <- StackData(DataTable,NewDataTable)
-                    ModelDataTable <- StackData(ModelDataTable,NewModelDataTable)
-                    ErrorDataTable <- StackData(ErrorDataTable,NewErrorDataTable)
                 }
           }
+          ModelDataTable <- BlackModelization(DataTable, DeviceID)
+          ErrorDataTable <- ErrorEstimation(DataTable, ModelDataTable)
+
     } else { # case 2, there are no files available
           print("You need to create the export files first!")
     }
-    CreateGraph(DataTable,ModelDataTable,ErrorDataTable,StructureName,Scale,ErrorBand,Save)
+    CreateGraph(DataTable,ModelDataTable,ErrorDataTable,DeviceID,Scale,ErrorBand,Save)
     #return(DataTable)
 }
-
-

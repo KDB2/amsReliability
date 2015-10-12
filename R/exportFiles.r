@@ -1,9 +1,9 @@
-# Script collection for ams AG Process Relibaility team.
+# Script collection for ams AG Process Reliability team.
 # Allow the creation of exportfiles based on 
 # data files provided by equipements.
 # September 2015
 # Emmanuel Chery
-# Version 0.2 
+# Version 0.3 
 
 
 
