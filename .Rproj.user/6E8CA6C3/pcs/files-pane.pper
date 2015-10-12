@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
+    "path" : "~/Sandbox/BlackProject",
+=======
     "path" : "~/Sandbox/amsReliability/man",
+>>>>>>> refs/remotes/origin/master
     "sortOrder" : [
         {
             "ascending" : true,

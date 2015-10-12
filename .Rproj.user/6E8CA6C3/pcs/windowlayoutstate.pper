@@ -2,7 +2,11 @@
     "left" : {
         "panelheight" : 959,
         "splitterpos" : 398,
+<<<<<<< HEAD
+        "topwindowstate" : "HIDE",
+=======
         "topwindowstate" : "NORMAL",
+>>>>>>> refs/remotes/origin/master
         "windowheight" : 997
     },
     "right" : {
