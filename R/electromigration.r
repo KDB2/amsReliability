@@ -3,7 +3,7 @@
 # Extraction of Black's parameters is performed.
 # September 2015
 # Emmanuel Chery
-# Version 0.3
+# Version 0.4
 
 
 
@@ -17,9 +17,9 @@ Ranking <- function(TTF)
 }
 
 
-CalculProbability <- function(Probability, Scale="Lognormale")
+CalculProbability <- function(Probability, Scale="Lognormal")
 # Given a vector Probability of probabilities, the function calculates
-# the correspondence in standard deviations for the lognormale case.
+# the correspondence in standard deviations for the Lognormal case.
 # Calculation of the Weibit is made for the Weibull case.
 {
   if (Scale=="Weibull") {
@@ -43,11 +43,11 @@ Clean <- function(DataTable)
 }
 
 
-CreateDataFrame <- function(TTF, Status, Condition, Stress, Temperature, Scale="Lognormale")
+CreateDataFrame <- function(TTF, Status, Condition, Stress, Temperature, Scale="Lognormal")
 # Creation of the dataframe assembling the TTF, the status of the samples,
 # the probability, the condition (stickers for charts),
 # the stress condition and the temperature used durng the stress.
-# The probability is calculated according to lognormale or Weibull distribution.
+# The probability is calculated according to Lognormal or Weibull distribution.
 # Data are given clean.
 
 # Data(TTF,Status,Probability,Conditions,Stress,Temperature)
@@ -56,7 +56,7 @@ CreateDataFrame <- function(TTF, Status, Condition, Stress, Temperature, Scale="
     if (Scale=="Weibull") {
         Proba <- CalculProbability(rk,Scale="Weibull") # Probability calculation Weibull
     } else {
-        Proba <- CalculProbability(rk,Scale="Lognormale") # Probability calculation Lognormale
+        Proba <- CalculProbability(rk,Scale="Lognormal") # Probability calculation Lognormal
     }
     # Generation of the final data frame
     DataTable <- data.frame('TTF'=TTF,'Status'=Status,'Probability'=Proba,'Conditions'=Condition, 'Stress'=Stress, 'Temperature'=Temperature)
@@ -64,18 +64,20 @@ CreateDataFrame <- function(TTF, Status, Condition, Stress, Temperature, Scale="
 }
 
 
-ReadDataAce <- function(FileName, Scale="Lognormale")
+ReadDataAce <- function(FileName, Scale="Lognormal")
 # Read the file exportfile and store it in a dataframe
 # Data are cleaned to remove bad units
+# Exportfile from Ace and Mira have different headers,
+# therefore column numbers are used
 {
     # Read the file and store it
     ResTable <- read.delim(FileName)
     # Creation of the new dataframe
-    TTF <- ResTable["Lifetime.s."]
-    Status <- ResTable["Failed"]
-    Stress <- ResTable["Istress"]
-    Temperature <- ResTable["Temp"]
-    Condition <- paste(ResTable[,"Istress"],"mA/",ResTable[,"Temp"],"°C",sep="") #paste(ResTable[,5],"mA/",ResTable[,8],"C",sep="")
+    TTF <- ResTable[,3]
+    Status <- ResTable[,2]
+    Stress <- ResTable[,5]
+    Temperature <- ResTable[,8]
+    Condition <- paste(ResTable[,5],"mA/",ResTable[,8],"C",sep="") #paste(ResTable[,"Istress"],"mA/",ResTable[,"Temp"],"°C",sep="")
     ResTable <- data.frame(TTF,Status,Condition,Stress,Temperature)
     # Force the column names
     names(ResTable) <- c("TTF", "Status", "Conditions", "Stress", "Temperature")
@@ -86,54 +88,11 @@ ReadDataAce <- function(FileName, Scale="Lognormale")
     if (Scale=="Weibull") {
         ExpDataTable <- CreateDataFrame(ResTable$TTF, ResTable$Status, ResTable$Condition, ResTable$Stress, ResTable$Temperature, Scale="Weibull")
     } else {
-        ExpDataTable <- CreateDataFrame(ResTable$TTF, ResTable$Status, ResTable$Condition, ResTable$Stress, ResTable$Temperature, Scale="Lognormale")
+        ExpDataTable <- CreateDataFrame(ResTable$TTF, ResTable$Status, ResTable$Condition, ResTable$Stress, ResTable$Temperature, Scale="Lognormal")
     }
     # We force the new names here as a security check.
     names(ExpDataTable) <- c("TTF", "Status", "Probability", "Conditions", "Stress", "Temperature")
     return(ExpDataTable)
-}
-
-
-ErrorEstimation <- function(ExpDataTable, ModelDataTable, ConfidenceValue=0.95)
-# Genration of confidence intervals
-{
-    # list of conditions
-    ListConditions <- levels(ExpDataTable$Conditions)
-
-    if (length(ListConditions) != 0){
-          # DataFrame initialisation
-          NbData <- length(ExpDataTable$TTF[ExpDataTable$Conditions == ListConditions[1]])
-          if (NbData > 30) {
-              mZP_Value <- qnorm((1 - ConfidenceValue) / 2) # Normal case. Valid if sample size > 30.
-          } else {
-              mZP_Value <- qt((1 - ConfidenceValue) / 2, df=(NbData -1) ) # t-test statistic for low sample size
-          }
-          CDF <- pnorm(ModelDataTable$Probability[ModelDataTable$Conditions == ListConditions[1]])
-          sef <- sqrt(CDF * (1 - CDF)/NbData) # TO BE CHECKED
-          LowerLimit <- qnorm(CDF - sef * mZP_Value)
-          HigherLimit <- qnorm(CDF + sef * mZP_Value)
-
-          ConfidenceDataTable <- data.frame('TTF'=ModelDataTable$TTF[ModelDataTable$Conditions == ListConditions[1]],'LowerLimit'=LowerLimit,'HigherLimit'=HigherLimit,'Conditions'=ListConditions[1])
-
-          if (length(ListConditions) > 1) {
-              for (i in 2:length(ListConditions)){
-                NbData <- length(ExpDataTable$TTF[ExpDataTable$Conditions == ListConditions[i]])
-                if (NbData > 30) {
-                    mZP_Value <- qnorm((1 - ConfidenceValue) / 2) # Normal case. Valid if sample size > 30.
-                } else {
-                    mZP_Value <- qt((1 - ConfidenceValue) / 2, df=(NbData -1) ) # t-test statistic for low sample size
-                }
-                CDF <- pnorm(ModelDataTable$Probability[ModelDataTable$Conditions == ListConditions[i]])
-                sef <- sqrt(CDF * (1 - CDF)/NbData) # TO BE CHECKED
-                LowerLimit <- qnorm(CDF - sef * mZP_Value)
-                HigherLimit <- qnorm(CDF + sef * mZP_Value)
-
-                NewData <- data.frame('TTF'=ModelDataTable$TTF[ModelDataTable$Conditions == ListConditions[i]],'LowerLimit'=LowerLimit,'HigherLimit'=HigherLimit,'Conditions'=ListConditions[i])
-                ConfidenceDataTable <- StackData(ConfidenceDataTable,NewData)
-              }
-          }
-      }
-    return(ConfidenceDataTable)
 }
 
 
@@ -155,7 +114,7 @@ BlackModelization <- function(DataTable, DeviceID)
 # Data(TTF,Status,Probability,Conditions,Stress,Temperature)
 {
     # Read the list of device to retrieve the section parameters.
-    ListDevice <- read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/0.18_um_Technology/0.18 FabB/BEOL/Elmig/ListDeviceName.txt")
+    ListDevice <- read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt")
     W <- ListDevice$Width[ListDevice$Device==DeviceID] # micrometers
     H <- ListDevice$Width[ListDevice$Device==DeviceID] # micrometers
     S <- W*H*1E-12 # m^2
@@ -164,6 +123,8 @@ BlackModelization <- function(DataTable, DeviceID)
     k <- 1.38E-23 # Boltzmann
     e <- 1.6E-19 # electron charge
 
+    # Remove the units where status is 0
+    DataTable <- DataTable[DataTable$Status==1,]
 
     # Black model / Log scale: use of log10 to avoid giving too much importance to data with a high TTF
     nls.control(maxiter = 100, tol = 1e-15, minFactor = 1/1024, printEval = FALSE, warnOnly = FALSE)
@@ -225,7 +186,50 @@ BlackModelization <- function(DataTable, DeviceID)
 }
 
 
-CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title="", Scale="Lognormale", ErrorBands=TRUE, Save=TRUE)
+ErrorEstimation <- function(ExpDataTable, ModelDataTable, ConfidenceValue=0.95)
+# Genration of confidence intervals
+{
+    # list of conditions
+    ListConditions <- levels(ExpDataTable$Conditions)
+
+    if (length(ListConditions) != 0){
+          # DataFrame initialisation
+          NbData <- length(ExpDataTable$TTF[ExpDataTable$Conditions == ListConditions[1]])
+          if (NbData > 30) {
+              mZP_Value <- qnorm((1 - ConfidenceValue) / 2) # Normal case. Valid if sample size > 30.
+          } else {
+              mZP_Value <- qt((1 - ConfidenceValue) / 2, df=(NbData -1) ) # t-test statistic for low sample size
+          }
+          CDF <- pnorm(ModelDataTable$Probability[ModelDataTable$Conditions == ListConditions[1]])
+          sef <- sqrt(CDF * (1 - CDF)/NbData) # TO BE CHECKED
+          LowerLimit <- qnorm(CDF - sef * mZP_Value)
+          HigherLimit <- qnorm(CDF + sef * mZP_Value)
+
+          ConfidenceDataTable <- data.frame('TTF'=ModelDataTable$TTF[ModelDataTable$Conditions == ListConditions[1]],'LowerLimit'=LowerLimit,'HigherLimit'=HigherLimit,'Conditions'=ListConditions[1])
+
+          if (length(ListConditions) > 1) {
+              for (i in 2:length(ListConditions)){
+                NbData <- length(ExpDataTable$TTF[ExpDataTable$Conditions == ListConditions[i]])
+                if (NbData > 30) {
+                    mZP_Value <- qnorm((1 - ConfidenceValue) / 2) # Normal case. Valid if sample size > 30.
+                } else {
+                    mZP_Value <- qt((1 - ConfidenceValue) / 2, df=(NbData -1) ) # t-test statistic for low sample size
+                }
+                CDF <- pnorm(ModelDataTable$Probability[ModelDataTable$Conditions == ListConditions[i]])
+                sef <- sqrt(CDF * (1 - CDF)/NbData) # TO BE CHECKED
+                LowerLimit <- qnorm(CDF - sef * mZP_Value)
+                HigherLimit <- qnorm(CDF + sef * mZP_Value)
+
+                NewData <- data.frame('TTF'=ModelDataTable$TTF[ModelDataTable$Conditions == ListConditions[i]],'LowerLimit'=LowerLimit,'HigherLimit'=HigherLimit,'Conditions'=ListConditions[i])
+                ConfidenceDataTable <- StackData(ConfidenceDataTable,NewData)
+              }
+          }
+      }
+    return(ConfidenceDataTable)
+}
+
+
+CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title="", Scale="Lognormal", ErrorBands=TRUE, Save=TRUE)
 # Use the table prepared with CreateDataFrame and create the probability plot.
 # Default is Lonormale scale but Weibull is available as an option.
 {
@@ -253,7 +257,7 @@ CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title
         }
     ProbaNorm <- CalculProbability(ListeProba/100,Scale)
 
-    } else { # Lognormale
+    } else { # Lognormal
         if (ExpDataTable[1,"Probability"]<= qnorm(0.1/100)){ # Case 1: lower than 0.1%
             ListeProba <- c(0.01,0.1,1,5,10,20,30,40,50,60,70,80,90,95,99,99.9,99.99)
         }
@@ -325,7 +329,7 @@ CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title
 }
 
 
-BlackAnalysis <- function(Scale="Lognormale",ErrorBand=TRUE,Save=TRUE)
+BlackAnalysis <- function(ErrorBand=TRUE, ConfidenceValue=0.95, Save=TRUE)
 # Main function calling the other. The one to use to open all the files.
 # Open all the exportfiles from the workfolder
 {
@@ -335,23 +339,23 @@ BlackAnalysis <- function(Scale="Lognormale",ErrorBand=TRUE,Save=TRUE)
     # case 1, there are one or several files available
     if (length(ListFiles) != 0){
           # Import the first file to create the 3 dataframes
-          DataTable <- ReadDataAce(ListFiles[1],Scale)
+          DataTable <- ReadDataAce(ListFiles[1],Scale="Lognormal")
 
           # Let's now check if other files are available
           if (length(ListFiles) > 1){
                 # loop to open all the files and stack them in the dataframe
                 for (i in 2:length(ListFiles)){
-                    NewDataTable <- ReadDataAce(ListFiles[i],Scale)
+                    NewDataTable <- ReadDataAce(ListFiles[i],Scale="Lognormal")
                     # Merging the tables
                     DataTable <- StackData(DataTable,NewDataTable)
                 }
           }
           ModelDataTable <- BlackModelization(DataTable, DeviceID)
-          ErrorDataTable <- ErrorEstimation(DataTable, ModelDataTable)
+          ErrorDataTable <- ErrorEstimation(DataTable, ModelDataTable, ConfidenceValue)
 
     } else { # case 2, there are no files available
           print("You need to create the export files first!")
     }
-    CreateGraph(DataTable,ModelDataTable,ErrorDataTable,DeviceID,Scale,ErrorBand,Save)
+    CreateGraph(DataTable,ModelDataTable,ErrorDataTable,DeviceID,Scale="Lognormal",ErrorBand,Save)
     #return(DataTable)
 }

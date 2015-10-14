@@ -9,9 +9,14 @@
 \packageDescription{amsReliability}
 }
 \details{
-\bold{CreateExportFiles()}: Use degradation and TCR files to create respective exportfiles. No arguments needed with this function.
+\bold{CreateExportFiles.EM()}:
 
-\bold{BlackAnalysis(Scale="Lognormale",ErrorBand=TRUE,Save=TRUE)}: Using the exportfiles previously generated, perform the analysis of electromigration data. Extraction of Black parameters is performed.
+Use degradation and TCR files from Qualitau ACE and MIRA equipments to create respective exportfiles. No arguments needed with this function. Times to failure are converted in seconds.
+
+\bold{BlackAnalysis(ErrorBand=TRUE,ConfidenceValue=0.95,Save=TRUE)}:
+
+Using the exportfiles previously generated, perform the analysis of electromigration data. Extraction of Black parameters is performed. A chart is generated with the experimental data and the calculated model.
+Confidence intervals can be disabled and the confidence value used can be choosen. If save is set to true, the chart is saved as PNG.
 }
 \author{
 \packageAuthor{amsReliability}
