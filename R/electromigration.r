@@ -116,7 +116,7 @@ BlackModelization <- function(DataTable, DeviceID)
     # Read the list of device to retrieve the section parameters.
     ListDevice <- read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt")
     W <- ListDevice$Width[ListDevice$Device==DeviceID] # micrometers
-    H <- ListDevice$Width[ListDevice$Device==DeviceID] # micrometers
+    H <- ListDevice$Height[ListDevice$Device==DeviceID] # micrometers
     S <- W*H*1E-12 # m^2
 
     # Physical constants
@@ -127,8 +127,8 @@ BlackModelization <- function(DataTable, DeviceID)
     DataTable <- DataTable[DataTable$Status==1,]
 
     # Black model / Log scale: use of log10 to avoid giving too much importance to data with a high TTF
-    nls.control(maxiter = 100, tol = 1e-15, minFactor = 1/1024, printEval = FALSE, warnOnly = FALSE)
-    Model <- nls(log10(TTF) ~ log10(exp(A)*(Stress*1E-3/S)^(-n)*exp((Ea*e)/(k*(Temperature+273.15))+Scale*Probability)), DataTable, start=list(A=30,n=1,Ea=0.7,Scale=0.3))#,trace = T)
+    #nls.control(maxiter = 100, tol = 1e-15, minFactor = 1/1024, printEval = FALSE, warnOnly = FALSE)
+    Model <- nls(log10(TTF) ~ log10(exp(A)*(Stress*1E-3/S)^(-n)*exp((Ea*e)/(k*(Temperature+273.15))+Scale*Probability)), DataTable, start=list(A=30,n=1,Ea=0.7,Scale=0.3),control= list(maxiter = 50, tol = 1e-7))#, minFactor = 1E-5, printEval = FALSE, warnOnly = FALSE))#,trace = T)
     #Model <- nls(TTF ~ exp(A)*(Stress*1E-3/S)^(-n)*exp((Ea*e)/(k*(Temperature+273.15))+Scale*Probability), DataTable, start=list(A=30,n=1,Ea=0.7,Scale=0.3))
     # Parameters Extraction
     A <- coef(Model)[1]
@@ -140,7 +140,7 @@ BlackModelization <- function(DataTable, DeviceID)
     # Total Sum of Squares: TSS <- sum((TTF - mean(TTF))^2))
     TSS <- sum(sapply(split(DataTable[,1],DataTable$Conditions),function(x) sum((x-mean(x))^2)))
     Rsq <- 1-RSS/TSS # R-squared measure
-
+    print(paste("Size on 150 rows:", format(object.size(Model), unit="Mb")))
 
     # Using the parameters and the conditions, theoretical distributions are created
     ListConditions <- levels(DataTable$Conditions)
@@ -180,14 +180,21 @@ BlackModelization <- function(DataTable, DeviceID)
             ModelDataTable <- StackData(ModelDataTable,NewData)
         }
     }
+    # Drawing of the residual plots
+    plot(nlsResiduals(Model))
+    # Display of fit results
+    print(summary(Model))
+    #print(coef(Model))
+    #print(sd(resid(Model)))
     write.table(data.frame('A'=A,'n'=n,'Ea'=Ea,'Scale'=Scale,"RSS"=RSS,"Rsq=",Rsq),"fit.txt",quote=FALSE,sep="\t")
-    print(paste("Ea=",Ea,"eV, n=",n,", A=",A," Scale=",Scale," RSS=",RSS," Rsq=",Rsq,sep=""))
+    #print(paste("Ea=",Ea,"eV, n=",n,", A=",A," Scale=",Scale," RSS=",RSS," Rsq=",Rsq,sep=""))
+    print(paste("Residual squared sum: ",RSS,sep=""))
     return(ModelDataTable)
 }
 
 
 ErrorEstimation <- function(ExpDataTable, ModelDataTable, ConfidenceValue=0.95)
-# Genration of confidence intervals
+# Generation of confidence intervals
 {
     # list of conditions
     ListConditions <- levels(ExpDataTable$Conditions)
