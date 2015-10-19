@@ -3,7 +3,7 @@
 # data files provided by equipements.
 # September 2015
 # Emmanuel Chery
-# Version 0.4
+# Version 0.4.1
 
 
 
@@ -103,7 +103,7 @@ CreateExportFiles.Mira <- function(DegFileName,TCRFileName)
 }
 
 
-CreateExportFiles.EM <- function()
+CreateExportFiles.EM <- function(ForceOverWrite=FALSE)
 # Main function called to create the exportfiles
 # from a set of Electromigration experiments.
 # Open all deg and TCR files from the workfolder
@@ -113,6 +113,7 @@ CreateExportFiles.EM <- function()
     # File to be read
     ListDegFiles <- list.files(pattern="*deg.txt")
     ListTCRFiles <- list.files(pattern="*TCR.txt")
+    ListExpFiles <- list.files(pattern="*exportfile.txt")
 
     # File number verification
     if (length(ListDegFiles) == 0 || length(ListTCRFiles) == 0 || length(ListDegFiles) != length(ListTCRFiles))  {
@@ -128,14 +129,20 @@ CreateExportFiles.EM <- function()
                 DeviceID <- strsplit(ListDegFiles[i],split="_")[[1]][2]
                 if (length(ListDevice$Width[ListDevice$Device==DeviceID])>0){
 
-                    # Read the first line (headers) & distinguish between Mira and ACE
-                    Headers <- scan(ListDegFiles[i], what="character", nlines = 1)
-                    if (Headers[1] == "#RESISTANCE#pkgNum") {
-                        # This is a Mira file
-                        CreateExportFiles.Mira(ListDegFiles[i],ListTCRFiles[i])
+                    # if exportfile is already present and if ForceOverWrite is False the file is skipped
+                    if (ForceOverWrite==FALSE & length(grep(substr(ListDegFiles[i], 1, nchar(ListDegFiles[i])-7),ListExpFiles)) > 0) {
+                        print(paste("File ",substr(ListDegFiles[i], 1, nchar(ListDegFiles[i])-7),"exportfile.txt is already present.",sep=""))
                     } else {
-                        # This is an ACE file
-                        CreateExportFiles.Ace(ListDegFiles[i],ListTCRFiles[i])
+
+                        # Read the first line (headers) & distinguish between Mira and ACE
+                        Headers <- scan(ListDegFiles[i], what="character", nlines = 1)
+                        if (Headers[1] == "#RESISTANCE#pkgNum") {
+                            # This is a Mira file
+                            CreateExportFiles.Mira(ListDegFiles[i],ListTCRFiles[i])
+                        } else {
+                            # This is an ACE file
+                            CreateExportFiles.Ace(ListDegFiles[i],ListTCRFiles[i])
+                        }
                     }
                 # Length is 0 thus the structure is not in the list
                 } else {
