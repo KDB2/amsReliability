@@ -1,3 +1,4 @@
 export("BlackAnalysis", "CreateExportFiles.EM")
 
-import(ggplot2,MASS,scales,grid)
+import(ggplot2,MASS,scales,grid,nlstools)
+
