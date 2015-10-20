@@ -1,7 +1,7 @@
 Package: amsReliability
 Type: Package
 Title: ams AG Reliability Analysis Package 
-Version: 0.4
+Version: 0.4.1
 Date: 2015-10-14
 Author: Emmanuel Chery
 Maintainer: <emmanuel.chery@ams.com>
