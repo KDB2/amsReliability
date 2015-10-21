@@ -9,10 +9,10 @@
 \packageDescription{amsReliability}
 }
 \details{
-\bold{CreateExportFiles.EM(ForceOverWrite=FALSE)}:
+\bold{CreateExportFiles.EM()}:
 
 Use degradation and TCR files from Qualitau ACE and MIRA equipments to create respective exportfiles.  Times to failure are converted in seconds. If several conditions are present in one ACE experiment file, one exportfiles per condition will be created.
-If exportfiles are already present, they are not replaced except if the ForceOverWrite option is set to TRUE.
+If exportfiles are already present, user is asked if old files should be kept, replaced or if data have to be merged.
 
 
 \bold{BlackAnalysis(ErrorBand=TRUE,ConfidenceValue=0.95,Save=TRUE)}:

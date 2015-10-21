@@ -3,7 +3,7 @@
 # data files provided by equipements.
 # September 2015
 # Emmanuel Chery
-# Version 0.4.1
+# Version 0.5
 
 
 
@@ -15,6 +15,8 @@ CreateExportFiles.Ace <- function(DegFileName,TCRFileName)
 {
     # Device and Width parameters
     ListDevice <- read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt")
+    # List of exportfile already present in the folder
+    ListExpFiles <- list.files(pattern="*exportfile.txt")
 
     DegFile <- read.delim(DegFileName,sep="")
     names(DegFile) = c("Device","Failed","Lifetime[s]","StressTemp[K]","Positive Current[A]","Negative Current[A]","Duty Cycle","Pulse Width","Stress Type")
@@ -53,13 +55,38 @@ CreateExportFiles.Ace <- function(DegFileName,TCRFileName)
 
         # Saving in a file
         FileName <- paste(strsplit(DegFileName,split="_")[[1]][1],"_",DeviceID,"_",Istress[1],"mA_",Temp[1],"C_exportfile.txt",sep="")
-        write.table(NewFile,file=FileName,sep="\t",row.names=FALSE,quote=FALSE)
-        print(paste(FileName, "created.",sep=" "))
-    }
+        # Let's check if the file exists already
+        ShortFileName <- paste(strsplit(DegFileName,split="_")[[1]][1],"_",DeviceID,"_",Istress[1],"mA_",Temp[1],"C",sep="")
 
-    # Istress extracted from filename and mA is removed
-    #Istress <- strsplit(DegFileName,split="_")[[1]][3]
-    #Istress <- as.numeric(substr(Istress, 1, nchar(Istress)-2))
+        if (length(grep(ShortFileName,ListExpFiles)) > 0) {
+
+            UserChoice <- readline(prompt=paste("File ",FileName, " is already present. Keep[K], Replace[R], Merge[M]? (Default=K)",sep=""))
+
+              if (UserChoice=="M" || UserChoice=="m"){
+                  # Store the old File and stack it with NewFile if they are both from ACE
+                  OldFile <- read.delim(FileName)
+
+                  if ( length(names(OldFile)) == length(names(NewFile)) ) {
+                      names(OldFile) <- names(NewFile)
+                      NewFile <- rbind(OldFile,NewFile)
+                      write.table(NewFile,file=FileName,sep="\t",row.names=FALSE,quote=FALSE)
+                      print(paste("Data have been added to",FileName,sep=" "))
+                  } else {
+                      print("You are trying to merge data from ACE and MIRA. Impossible operation. Old file has been kept.")
+                  }
+
+              } else if (UserChoice=="R" || UserChoice=="r"){
+                  write.table(NewFile,file=FileName,sep="\t",row.names=FALSE,quote=FALSE)
+                  print(paste(FileName, "created.",sep=" "))
+              } else {
+                  print(paste("File ",FileName," was kept.",sep=""))
+              }
+
+        } else {
+            write.table(NewFile,file=FileName,sep="\t",row.names=FALSE,quote=FALSE)
+            print(paste(FileName, "created.",sep=" "))
+        }
+    }
 }
 
 
@@ -70,6 +97,8 @@ CreateExportFiles.Mira <- function(DegFileName,TCRFileName)
 {
     # Device and Width parameters
     ListDevice <- read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt")
+    # List of exportfile already present in the folder
+    ListExpFiles <- list.files(pattern="*exportfile.txt")
 
     DegFile <- read.delim(DegFileName,sep="")
     names(DegFile) <- c("#RESISTANCE#pkgNum", "ValueAtTimeZero","MinAchieved","MinUsedForFailure","FailureIteration","LastValue","NowValue","Split","FailureTime","FailedDevice","DUT","Extr1","Extr2","Extr3","Extr4","Ref")
@@ -96,14 +125,42 @@ CreateExportFiles.Mira <- function(DegFileName,TCRFileName)
     names(NewFile) <- c("Device","Failed","Lifetime[s]","Split","Istress","L","W","Temp","DeviceID","ValueAtTimeZero","Rref(in Ohms)","TCR(in %/°C)","R(stress)","T(stress)","T(stress)-OvenT","Theta(°C/W)")
 
     # Saving in a file
-    #NewFile[,11:16] <-format(NewFile[,11:16], scientific = FALSE)
     FileName <- paste(substr(DegFileName, 1, nchar(DegFileName)-7),"exportfile.txt",sep="")
-    write.table(NewFile,file=FileName,sep="\t",row.names=FALSE,quote=FALSE)
+    # Let's check if the file exists already
+    ShortFileName <- paste(strsplit(DegFileName,split="_")[[1]][1],"_",DeviceID,"_",Istress[1],"mA_",Temp[1],"C",sep="")
 
+    if (length(grep(ShortFileName,ListExpFiles)) > 0) {
+
+        UserChoice <- readline(prompt=paste("File ",FileName, " is already present. Keep[K], Replace[R], Merge[M]? (Default=K)",sep=""))
+
+          if (UserChoice=="M" || UserChoice=="m"){
+              # Store the old File and stack it with NewFile if they are both from MIRA
+              OldFile <- read.delim(FileName)
+
+              if ( length(names(OldFile)) == length(names(NewFile)) ) {
+                  names(OldFile) <- names(NewFile)
+                  NewFile <- rbind(OldFile,NewFile)
+                  write.table(NewFile,file=FileName,sep="\t",row.names=FALSE,quote=FALSE)
+                  print(paste("Data have been added to",FileName,sep=" "))
+              } else {
+                  print("You are trying to merge data from ACE and MIRA. Impossible operation. Old file has been kept.")
+              }
+
+          } else if (UserChoice=="R" || UserChoice=="r"){
+              write.table(NewFile,file=FileName,sep="\t",row.names=FALSE,quote=FALSE)
+              print(paste(FileName, "created.",sep=" "))
+          } else {
+              print(paste("File ",FileName," was kept.",sep=""))
+          }
+
+    } else {
+        write.table(NewFile,file=FileName,sep="\t",row.names=FALSE,quote=FALSE)
+        print(paste(FileName, "created.",sep=" "))
+    }
 }
 
 
-CreateExportFiles.EM <- function(ForceOverWrite=FALSE)
+CreateExportFiles.EM <- function()
 # Main function called to create the exportfiles
 # from a set of Electromigration experiments.
 # Open all deg and TCR files from the workfolder
@@ -113,7 +170,6 @@ CreateExportFiles.EM <- function(ForceOverWrite=FALSE)
     # File to be read
     ListDegFiles <- list.files(pattern="*deg.txt")
     ListTCRFiles <- list.files(pattern="*TCR.txt")
-    ListExpFiles <- list.files(pattern="*exportfile.txt")
 
     # File number verification
     if (length(ListDegFiles) == 0 || length(ListTCRFiles) == 0 || length(ListDegFiles) != length(ListTCRFiles))  {
@@ -129,24 +185,18 @@ CreateExportFiles.EM <- function(ForceOverWrite=FALSE)
                 DeviceID <- strsplit(ListDegFiles[i],split="_")[[1]][2]
                 if (length(ListDevice$Width[ListDevice$Device==DeviceID])>0){
 
-                    # if exportfile is already present and if ForceOverWrite is False the file is skipped
-                    if (ForceOverWrite==FALSE & length(grep(substr(ListDegFiles[i], 1, nchar(ListDegFiles[i])-7),ListExpFiles)) > 0) {
-                        print(paste("File ",substr(ListDegFiles[i], 1, nchar(ListDegFiles[i])-7),"exportfile.txt is already present.",sep=""))
+                    # Read the first line (headers) & distinguish between Mira and ACE
+                    Headers <- scan(ListDegFiles[i], what="character", nlines = 1)
+                    if (Headers[1] == "#RESISTANCE#pkgNum") {
+                        # This is a Mira file
+                        CreateExportFiles.Mira(ListDegFiles[i],ListTCRFiles[i])
                     } else {
-
-                        # Read the first line (headers) & distinguish between Mira and ACE
-                        Headers <- scan(ListDegFiles[i], what="character", nlines = 1)
-                        if (Headers[1] == "#RESISTANCE#pkgNum") {
-                            # This is a Mira file
-                            CreateExportFiles.Mira(ListDegFiles[i],ListTCRFiles[i])
-                        } else {
-                            # This is an ACE file
-                            CreateExportFiles.Ace(ListDegFiles[i],ListTCRFiles[i])
-                        }
+                        # This is an ACE file
+                        CreateExportFiles.Ace(ListDegFiles[i],ListTCRFiles[i])
                     }
                 # Length is 0 thus the structure is not in the list
                 } else {
-                        print(paste("Structure",DeviceID, "is not present in the list. Please fill the list!"))
+                    print(paste("Structure",DeviceID, "is not present in the list. Please fill the list!"))
                 }
             } else {
                 print(paste("File names are not matching. Please verify!"))

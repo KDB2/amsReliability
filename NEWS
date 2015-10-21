@@ -1,11 +1,18 @@
+amsReliability v0.5 (Release date: 2015-10-)
+==============
+
+Changes:
+* In CreateExportFile.EM function, ForceOverWrite option has been removed.
+* If an existent exportfile is detected, user is asked if he wants to keep it, to replace it or to merge the data.
+
 amsReliability v0.4.1 (Release date: 2015-10-19)
 ==============
 
 Changes:
 
 * Creation of exportfiles supports experiments with several conditions (ACE equipment).
-* ForceOverWrite option was added to the CreateExportFile.EM function to force the replacement of existing exportfiles. 
-* BlackAnalysis function supports exportfiles with several conditions stored inside. 
+* ForceOverWrite option was added to the CreateExportFile.EM function to force the replacement of existing exportfiles.
+* BlackAnalysis function supports exportfiles with several conditions stored inside.
 
 
 amsReliability v0.4 (Release date: 2015-10-14)
@@ -15,7 +22,7 @@ Changes:
 
 * MAN pages were adapted to code changes.
 * Creation of exportfiles for MIRA is working.
-* Creation of exportfile returns clear error messages to users if problems occur.  
+* Creation of exportfile returns clear error messages to users if problems occur.
 
 
 amsReliability v0.3 (Release date: 2015-10-12)
@@ -24,8 +31,8 @@ amsReliability v0.3 (Release date: 2015-10-12)
 Changes:
 
 * fix '°C' encoding bug
-* Non linear least square modelization of experimental data is implemented. 
-* Only failed devices are taken into account in the modelization. Censored distribution are perfectly describded. 
+* Non linear least square modelization of experimental data is implemented.
+* Only failed devices are taken into account in the modelization. Censored distribution are perfectly describded.
 * Black parameters are automaticaly extracted from the dataset.
 * Error band calculation is performed.
 

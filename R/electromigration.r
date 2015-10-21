@@ -3,8 +3,7 @@
 # Extraction of Black's parameters is performed.
 # September 2015
 # Emmanuel Chery
-# Version 0.4.1
-
+# Version 0.5
 
 
 Ranking <- function(TTF)
@@ -122,8 +121,9 @@ ReadDataAce <- function(FileName, Scale="Lognormal")
 StackData <- function(DataTable1, DataTable2)
 # Merge 2 DataTable
 {
-    NewDataTable <- merge(DataTable1, DataTable2, all=TRUE)
-    NewDataTable <- NewDataTable[order(NewDataTable$"Conditions"),]
+    NewDataTable <- rbind(DataTable1, DataTable2)
+    #NewDataTable <- merge(DataTable1, DataTable2, all=TRUE)
+    #NewDataTable <- NewDataTable[order(NewDataTable$"Conditions"),]
     return(NewDataTable)
 }
 
@@ -215,7 +215,7 @@ BlackModelization <- function(DataTable, DeviceID)
       print(summary(Model))
       #print(coef(Model))
       #print(sd(resid(Model)))
-      write.table(data.frame('A'=A,'n'=n,'Ea'=Ea,'Scale'=Scale,"RSS"=RSS,"Rsq=",Rsq),"fit.txt",quote=FALSE,sep="\t")
+      write.table(data.frame('A'=A,'n'=n,'Ea'=Ea,'Scale'=Scale,'RSS'=RSS,'Rsq'=Rsq),"fit.txt",quote=FALSE,sep="\t")
       #print(paste("Ea=",Ea,"eV, n=",n,", A=",A," Scale=",Scale," RSS=",RSS," Rsq=",Rsq,sep=""))
       print(paste("Residual squared sum: ",RSS,sep=""))
       return(ModelDataTable)
