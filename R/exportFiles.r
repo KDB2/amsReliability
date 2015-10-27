@@ -3,7 +3,7 @@
 # data files provided by equipements.
 # September 2015
 # Emmanuel Chery
-# Version 0.5
+# Version 0.6
 
 
 
@@ -160,10 +160,25 @@ CreateExportFiles.Mira <- function(DegFileName,TCRFileName)
 }
 
 
+#' Exportfiles creation
+#'
+#' Automatically creates the exportfiles for a set of electromigration experiments
+#' by using degradation and TCR files provided by Qualitau ACE and MIRA equipments.
+#' All files should be placed in the folder where the function is run.
+#' The function matches file names to create the exportfiles but is able to detect
+#' if several conditions are stored in one file. One exportfile is created for each condition.
+#' If an exportfile is already present, user is asked if the old file is to be kept, replaced or if data have to be merged.
+#' Times to failure are converted in seconds if they are provided in hours.
+#'
+#' @param None
+#'
+#' @return None
+#'
+#' @examples
+#' CreateExportFiles.EM()
+#' @author Emmanuel Chery, \email{emmanuel.chery@@ams.com}
+#' @export
 CreateExportFiles.EM <- function()
-# Main function called to create the exportfiles
-# from a set of Electromigration experiments.
-# Open all deg and TCR files from the workfolder
 {
     # Device and Width parameters
     ListDevice <- read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt")

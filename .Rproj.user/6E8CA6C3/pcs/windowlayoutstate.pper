@@ -1,18 +1,14 @@
 {
     "left" : {
-        "panelheight" : 959,
-        "splitterpos" : 398,
-<<<<<<< HEAD
-        "topwindowstate" : "HIDE",
-=======
+        "panelheight" : 999,
+        "splitterpos" : 415,
         "topwindowstate" : "NORMAL",
->>>>>>> refs/remotes/origin/master
-        "windowheight" : 997
+        "windowheight" : 1037
     },
     "right" : {
-        "panelheight" : 959,
-        "splitterpos" : 598,
+        "panelheight" : 999,
+        "splitterpos" : 623,
         "topwindowstate" : "NORMAL",
-        "windowheight" : 997
+        "windowheight" : 1037
     }
 }

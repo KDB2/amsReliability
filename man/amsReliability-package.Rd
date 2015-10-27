@@ -2,24 +2,25 @@
 \alias{amsReliability-package}
 \alias{amsReliability}
 \docType{package}
-\title{
-\packageTitle{amsReliability}
-}
+\title{amsReliability package}
 \description{
 \packageDescription{amsReliability}
 }
 \details{
-\bold{CreateExportFiles.EM()}:
 
-Use degradation and TCR files from Qualitau ACE and MIRA equipments to create respective exportfiles.  Times to failure are converted in seconds. If several conditions are present in one ACE experiment file, one exportfiles per condition will be created.
-If exportfiles are already present, user is asked if old files should be kept, replaced or if data have to be merged.
+2 functions are currently available within this package.
 
+\bold{CreateExportFiles.EM}: Automatically creates the exportfiles for a set of electromigration experiments
+by using degradation and TCR files provided by Qualitau ACE and MIRA equipments.
+All files should be placed in the folder where the function is run.
+The function matches file names to create the exportfiles but is able to detect
+if several conditions are stored in one file. One exportfile per condition is created.
+If an exportfile is already present, user is asked if old files should be kept, replaced or if data have to be merged.
+Times to failure are converted in seconds if they are provided in hours.
 
-\bold{BlackAnalysis(ErrorBand=TRUE,ConfidenceValue=0.95,Save=TRUE)}:
-
-Using the exportfiles previously generated, perform the analysis of electromigration data. Extraction of Black parameters is performed. A chart is generated with the experimental data and the calculated model.
-Confidence intervals can be disabled and the confidence value used can be choosen. If save is set to true, the chart is saved as PNG.
-}
+\bold{BlackAnalysis}: Extract Black's parameters from a set of electromigration experiments.
+The experimental data as well as the resulting model are displayed and
+can be saved. Extracted parameters are saved in a fit.txt file.}
 \author{
 \packageAuthor{amsReliability}
 

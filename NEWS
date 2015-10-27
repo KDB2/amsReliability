@@ -1,4 +1,13 @@
-amsReliability v0.5 (Release date: 2015-10-)
+amsReliability v0.6 (Release date: 2015-10-27)
+==============
+
+Changes:
+* Conditions splitted in different files are now handled as one single condition (merge before probability calculation). 
+* Better documentation system. Each function has its own MAN page.
+* Fit results are exported to a fit.txt file.
+* Massive code cleanup to simplify maintenance and enhance performance (less if/else conditions)
+
+amsReliability v0.5 (Release date: 2015-10-21)
 ==============
 
 Changes:
