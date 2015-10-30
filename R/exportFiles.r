@@ -1,11 +1,42 @@
-# Script collection for ams AG Process Relibaility team.
-# Allow the creation of exportfiles based on
-# data files provided by equipements.
-# September 2015
-# Emmanuel Chery
-# Version 0.6
-
-
+################################################################################
+###                                                                          ###
+###    INFORMATIONS                                                          ###
+###    ---------------------------------                                     ###
+###                                                                          ###
+###       PACKAGE NAME        amsReliability                                 ###
+###       SECTION NAME        exportFiles.r                                  ###
+###       VERSION             0.7                                            ###
+###                                                                          ###
+###       AUTHOR              Emmanuel Chery                                 ###
+###       MAIL                emmanuel.chery@ams.com                         ###
+###       DATE                2015/10/30                                     ###
+###       PLATFORM            Windows 7 & Gnu/Linux 3.16                     ###
+###       R VERSION           R 3.1.1                                        ###
+###       REQUIRED PACKAGES   ggplot2, grid, MASS, nlstools, scales          ###
+###       LICENSE             GNU GENERAL PUBLIC LICENSE                     ###
+###                           Version 3, 29 June 2007                        ###
+###                                                                          ###
+###                                                                          ###
+###    DESCRIPTION                                                           ###
+###    ---------------------------------                                     ###
+###                                                                          ###
+###       This package is a collection of scripts dedicated to help          ###
+###    the process reliability team of ams AG. It includes tools to          ###
+###    quickly visualize data and extract model parameters in order          ###
+###    to predict device lifetimes.                                          ###
+###                                                                          ###
+###       This section includes functions used to automatize export          ###
+###    files creation.                                                       ###
+###                                                                          ###
+###                                                                          ###
+###    FUNCTIONS                                                             ###
+###    ---------------------------------                                     ###
+###                                                                          ###
+###       CreateExportFiles.Ace     Subfunction for Ace equipement           ###
+###       CreateExportFiles.Mira    Subfunction for Mira equipement          ###
+###       CreateExportFiles	    Main function for electromigration       ###
+###                                                                          ###
+################################################################################
 
 
 CreateExportFiles.Ace <- function(DegFileName,TCRFileName)
@@ -175,10 +206,10 @@ CreateExportFiles.Mira <- function(DegFileName,TCRFileName)
 #' @return None
 #'
 #' @examples
-#' CreateExportFiles.EM()
+#' CreateExportFiles()
 #' @author Emmanuel Chery, \email{emmanuel.chery@@ams.com}
 #' @export
-CreateExportFiles.EM <- function()
+CreateExportFiles <- function()
 {
     # Device and Width parameters
     ListDevice <- read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt")

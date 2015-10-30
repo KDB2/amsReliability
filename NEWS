@@ -1,8 +1,16 @@
+amsReliability v0.7 (Release date: 2015-10-30)
+==============
+
+Changes:
+* Handle modelization crash. Data are only displayed and not modelized if not enough experimental conditions are provided.
+* Generic function to create all the exportfiles: CreateExportFiles.
+* BlackAnalysis can handle cases where several devices are mixed in the conditions. One analysis for each device is performed.
+
 amsReliability v0.6 (Release date: 2015-10-27)
 ==============
 
 Changes:
-* Conditions splitted in different files are now handled as one single condition (merge before probability calculation). 
+* Conditions splitted in different files are now handled as one single condition (merge before probability calculation).
 * Better documentation system. Each function has its own MAN page.
 * Fit results are exported to a fit.txt file.
 * Massive code cleanup to simplify maintenance and enhance performance (less if/else conditions)

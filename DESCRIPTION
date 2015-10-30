@@ -1,8 +1,8 @@
 Package: amsReliability
 Type: Package
 Title: ams AG Reliability Analysis Package
-Version: 0.6
-Date: 2015-10-27
+Version: 0.7
+Date: 2015-10-30
 Author: Emmanuel Chery
 Maintainer: <emmanuel.chery@ams.com>
 Description: Allow the analysis of process reliability data. Key parameters of reliability models are extracted.
