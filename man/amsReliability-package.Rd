@@ -10,7 +10,7 @@
 
 2 functions are currently available within this package.
 
-\bold{CreateExportFiles.EM}: Automatically creates the exportfiles for a set of electromigration experiments
+\bold{CreateExportFiles}: Automatically creates the exportfiles for a set of electromigration experiments
 by using degradation and TCR files provided by Qualitau ACE and MIRA equipments.
 All files should be placed in the folder where the function is run.
 The function matches file names to create the exportfiles but is able to detect
