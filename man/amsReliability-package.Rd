@@ -8,7 +8,7 @@
 }
 \details{
 
-2 functions are currently available within this package.
+3 functions are currently available within this package.
 
 \bold{CreateExportFiles}: Automatically creates the exportfiles for a set of electromigration experiments
 by using degradation and TCR files provided by Qualitau ACE and MIRA equipments.
@@ -20,7 +20,12 @@ Times to failure are converted in seconds if they are provided in hours.
 
 \bold{BlackAnalysis}: Extract Black's parameters from a set of electromigration experiments.
 The experimental data as well as the resulting model are displayed and
-can be saved. Extracted parameters are saved in a fit.txt file.}
+can be saved. Extracted parameters are saved in a fit.txt file.
+
+\bold{OxideTDDB}: Extract oxide lifetime parameters from a set of Time Dependant
+Dielectric Breakdown (TDDB) experiments. The experimental data as well as the
+resulting model are displayed and can be saved. Extracted parameters are saved
+in a fit.txt file.}
 \author{
 \packageAuthor{amsReliability}
 
