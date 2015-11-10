@@ -1,3 +1,11 @@
+amsReliability v0.8 (Release date: 2015-11-10)
+==============
+
+Changes:
+* OxideTDDB function is introduced for TDDB data modelization. 
+* Handle modelization crash. Data are only displayed and modelized with standard lognomal or Weibull distributions. Parameters are returned to users.
+* Better exception handling in case an important file is not found on the network. The script no longer crash. Instead it finishes with a description message for the user.  
+
 amsReliability v0.7 (Release date: 2015-10-30)
 ==============
 

@@ -4,12 +4,12 @@
 ###    ---------------------------------                                     ###
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
-###       SECTION NAME        genericFunctions.r                             ###
-###       VERSION             0.7                                            ###
+###       MODULE NAME         genericFunctions.r                             ###
+###       VERSION             0.8                                            ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
-###       DATE                2015/10/30                                     ###
+###       DATE                2015/11/10                                     ###
 ###       PLATFORM            Windows 7 & Gnu/Linux 3.16                     ###
 ###       R VERSION           R 3.1.1                                        ###
 ###       REQUIRED PACKAGES   ggplot2, grid, MASS, nlstools, scales          ###
@@ -25,7 +25,7 @@
 ###    quickly visualize data and extract model parameters in order          ###
 ###    to predict device lifetimes.                                          ###
 ###                                                                          ###
-###       This section includes generic functions usable with every          ###
+###       This module includes generic functions usable with every           ###
 ###    degradation mechanism.                                                ###
 ###                                                                          ###
 ###                                                                          ###
@@ -68,13 +68,13 @@ Clean <- function(DataTable)
 }
 
 
-CreateDataFrame <- function(TTF, Status, Condition, Stress, Temperature, Scale="Lognormal")
+CreateDataFrame <- function(TTF, Status, Condition, Stress, Temperature, Scale="Lognormal", Dimension = 1)
 # Creation of the dataframe assembling the TTF, the status of the samples,
 # the probability, the condition (stickers for charts),
 # the stress condition and the temperature used durng the stress.
 # The probability is calculated according to Lognormal or Weibull distribution.
 # Data are given clean.
-# Data(TTF,Status,Probability,Conditions,Stress,Temperature)
+# Data(TTF,Status,Probability,Conditions,Stress,Temperature, Dimension)
 {
     rk <- Ranking(TTF) # Fraction estimator calculation
     if (Scale=="Weibull") {
@@ -83,7 +83,7 @@ CreateDataFrame <- function(TTF, Status, Condition, Stress, Temperature, Scale="
         Proba <- CalculProbability(rk,Scale="Lognormal") # Probability calculation Lognormal
     }
     # Generation of the final data frame
-    DataTable <- data.frame('TTF'=TTF,'Status'=Status,'Probability'=Proba,'Conditions'=Condition, 'Stress'=Stress, 'Temperature'=Temperature)
+    DataTable <- data.frame('TTF'=TTF,'Status'=Status,'Probability'=Proba,'Conditions'=Condition, 'Stress'=Stress, 'Temperature'=Temperature, 'Dimension'=Dimension)
     return(DataTable)
 }
 
@@ -220,6 +220,56 @@ ErrorEstimation <- function(ExpDataTable, ModelDataTable, ConfidenceValue=0.95)
     return(ConfidenceDataTable)
 }
 
+
+FitDistribution <- function(DataTable,Scale="Lognormal")
+# Extract simple distribution parameters (MTTF, scale) and return
+# a ModelDataTable to plot the theoretical distribution
+{
+    # For each condtion we estimate a theoretical distribution
+    ListConditions <- levels(DataTable$Conditions)
+
+    # Initialisation of ModelDataTable
+    ModelDataTable <- data.frame()
+
+    for (i in seq_along(ListConditions)){
+
+        # Condition, Stress and Temperature stickers
+        ModelCondition <- ListConditions[i]
+        ModelStress <- DataTable$Stress[DataTable$Conditions==ModelCondition][1]
+        ModelTemperature <- DataTable$Temperature[DataTable$Conditions==ModelCondition][1]
+
+        # x axis limits are calculated
+        lim <- range(DataTable$TTF[DataTable$Conditions==ModelCondition])
+        lim.high <- 10^(ceiling(log(lim[2],10)))
+        lim.low <- 10^(floor(log(lim[1],10)))
+        # Generation of a vector for the calculation of the model. 200pts/decades
+        x <- 10^seq(log(lim.low,10),log(lim.high,10),0.005)
+
+
+        # Model calculation with the experimental TTF
+        if (Scale=="Weibull") { # Weibull
+              fit <- fitdistr(DataTable$TTF[DataTable$Conditions==ModelCondition & DataTable$Status==1],"weibull")
+              fitShape <- fit$estimate[1]  # Beta
+              fitScale <- fit$estimate[2]  # Characteristic time (t_63%)
+              y <- CalculProbability(pweibull(x, fitShape, fitScale),"Weibull")
+              # Display of Model parameters
+              print(paste("Condition ",ModelCondition, " Beta= ", fitShape, " t63%=", fitScale,sep=""))
+
+        } else { # Lognormale
+              fit <- fitdistr(DataTable$TTF[DataTable$Conditions==ModelCondition & DataTable$Status==1],"lognormal")
+              fitScale <- fit$estimate[1]  # meanlog
+              fitShape <- fit$estimate[2]  # sdlog
+              y <- CalculProbability(plnorm(x, fitScale, fitShape),"Lognormale")
+              # Display of Model parameters
+              print(paste("Condition ",ModelCondition, " Shape= ", fitShape, " MTTF=", exp(fitScale),sep=""))
+        }
+
+        # ModelDataTable creation
+        ModelDataTable <- rbind(ModelDataTable, data.frame('TTF'=x,'Status'=1,'Probability'=y,'Conditions'=ModelCondition,'Stress'=ModelStress,'Temperature'=ModelTemperature) )
+    }
+    return(ModelDataTable)
+
+}
 
 Ranking <- function(TTF)
 # Fraction estimator calculation

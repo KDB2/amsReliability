@@ -4,12 +4,12 @@
 ###    ---------------------------------                                     ###
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
-###       SECTION NAME        exportFiles.r                                  ###
-###       VERSION             0.7                                            ###
+###       MODULE NAME         exportFiles.r                                  ###
+###       VERSION             0.8                                            ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
-###       DATE                2015/10/30                                     ###
+###       DATE                2015/11/10                                     ###
 ###       PLATFORM            Windows 7 & Gnu/Linux 3.16                     ###
 ###       R VERSION           R 3.1.1                                        ###
 ###       REQUIRED PACKAGES   ggplot2, grid, MASS, nlstools, scales          ###
@@ -25,7 +25,7 @@
 ###    quickly visualize data and extract model parameters in order          ###
 ###    to predict device lifetimes.                                          ###
 ###                                                                          ###
-###       This section includes functions used to automatize export          ###
+###       This module includes functions used to automatize export           ###
 ###    files creation.                                                       ###
 ###                                                                          ###
 ###                                                                          ###
@@ -34,7 +34,7 @@
 ###                                                                          ###
 ###       CreateExportFiles.Ace     Subfunction for Ace equipement           ###
 ###       CreateExportFiles.Mira    Subfunction for Mira equipement          ###
-###       CreateExportFiles	    Main function for electromigration       ###
+###       CreateExportFiles         Main function for electromigration       ###
 ###                                                                          ###
 ################################################################################
 
@@ -212,40 +212,46 @@ CreateExportFiles.Mira <- function(DegFileName,TCRFileName)
 CreateExportFiles <- function()
 {
     # Device and Width parameters
-    ListDevice <- read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt")
+    ListDevice <- try(read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt"),silent=TRUE)
     # File to be read
     ListDegFiles <- list.files(pattern="*deg.txt")
     ListTCRFiles <- list.files(pattern="*TCR.txt")
 
-    # File number verification
-    if (length(ListDegFiles) == 0 || length(ListTCRFiles) == 0 || length(ListDegFiles) != length(ListTCRFiles))  {
-        print("Number of files is wrong. Please check!")
-    } else {
-        # We proceed
+    # Check if ListDeviceName.txt was available
+    if (classe(ListDevice=="try-error")){
+      print("File //fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt not found.")
+    } else{
 
-        for (i in 1:length(ListDegFiles)){
+        # File number verification
+        if (length(ListDegFiles) == 0 || length(ListTCRFiles) == 0 || length(ListDegFiles) != length(ListTCRFiles))  {
+            print("Number of files is wrong. Please check!")
+        } else {
+            # We proceed
 
-            # Check if the common part of the file name is the same. If not, nothing is produced.
-            if (substr(ListDegFiles[i], 1, nchar(ListDegFiles[i])-7) == substr(ListTCRFiles[i], 1, nchar(ListDegFiles[i])-7)) {
-              # Check if the structure is present in the list. If not user is warned
-                DeviceID <- strsplit(ListDegFiles[i],split="_")[[1]][2]
-                if (length(ListDevice$Width[ListDevice$Device==DeviceID])>0){
+            for (i in 1:length(ListDegFiles)){
 
-                    # Read the first line (headers) & distinguish between Mira and ACE
-                    Headers <- scan(ListDegFiles[i], what="character", nlines = 1)
-                    if (Headers[1] == "#RESISTANCE#pkgNum") {
-                        # This is a Mira file
-                        CreateExportFiles.Mira(ListDegFiles[i],ListTCRFiles[i])
+                # Check if the common part of the file name is the same. If not, nothing is produced.
+                if (substr(ListDegFiles[i], 1, nchar(ListDegFiles[i])-7) == substr(ListTCRFiles[i], 1, nchar(ListDegFiles[i])-7)) {
+                  # Check if the structure is present in the list. If not user is warned
+                    DeviceID <- strsplit(ListDegFiles[i],split="_")[[1]][2]
+                    if (length(ListDevice$Width[ListDevice$Device==DeviceID])>0){
+
+                        # Read the first line (headers) & distinguish between Mira and ACE
+                        Headers <- scan(ListDegFiles[i], what="character", nlines = 1)
+                        if (Headers[1] == "#RESISTANCE#pkgNum") {
+                            # This is a Mira file
+                            CreateExportFiles.Mira(ListDegFiles[i],ListTCRFiles[i])
+                        } else {
+                            # This is an ACE file
+                            CreateExportFiles.Ace(ListDegFiles[i],ListTCRFiles[i])
+                        }
+                    # Length is 0 thus the structure is not in the list
                     } else {
-                        # This is an ACE file
-                        CreateExportFiles.Ace(ListDegFiles[i],ListTCRFiles[i])
+                        print(paste("Structure",DeviceID, "is not present in the list. Please fill the list!"))
                     }
-                # Length is 0 thus the structure is not in the list
                 } else {
-                    print(paste("Structure",DeviceID, "is not present in the list. Please fill the list!"))
+                    print(paste("File names are not matching. Please verify!"))
                 }
-            } else {
-                print(paste("File names are not matching. Please verify!"))
             }
         }
     }
