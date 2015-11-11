@@ -239,7 +239,7 @@ OxideTDDB <- function(ErrorBand=FALSE, ConfidenceValue=0.95, Save=TRUE)
     } else { # case 2, there are no files available
           print("You need to create the export files first!")
     }
-    return(DataTable)
+    #return(DataTable)
     # Warning are set on again.
     options(warn = oldw)
 }

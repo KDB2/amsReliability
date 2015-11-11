@@ -218,7 +218,7 @@ CreateExportFiles <- function()
     ListTCRFiles <- list.files(pattern="*TCR.txt")
 
     # Check if ListDeviceName.txt was available
-    if (classe(ListDevice=="try-error")){
+    if (class(ListDevice)=="try-error"){
       print("File //fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt not found.")
     } else{
 
