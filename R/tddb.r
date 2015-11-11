@@ -32,6 +32,8 @@
 ###    FUNCTIONS                                                             ###
 ###    ---------------------------------                                     ###
 ###                                                                          ###
+###       OxideLifetimeModelization Extraction of oxide lifetime parameters  ###
+###       OxideTDDB                 Main function for TDDB data analysis     ###
 ###       ReadDataTDDB              Read Exportfile and create data table    ###
 ###                                                                          ###
 ################################################################################
@@ -63,6 +65,8 @@ ReadDataTDDB <- function(ListFiles)
         # Make status similar to Electromigration: -1 wrong device, not to be considered in statistic; 1 failed; 0 not failed.
         Status[Status != 100 & Status != -1] <- 1
         Status[Status == 100] <- 0
+        # Device dead during ramp are not considered in statistique (-1). They have a negative TTF
+        Status[TTF < 0] <- -1
         # Device with Status 0 have wrong voltage and TTF = 0. We will force good voltage and 1E30 for TTF.
         TTF[Status==0] <- 1E30
         Stress[Status==0] <- as.numeric(substr(as.character(File[Status==0,2]), 2, nchar(as.character(File[Status==0,2]))))
@@ -235,7 +239,7 @@ OxideTDDB <- function(ErrorBand=FALSE, ConfidenceValue=0.95, Save=TRUE)
     } else { # case 2, there are no files available
           print("You need to create the export files first!")
     }
-    #return(DataTable)
+    return(DataTable)
     # Warning are set on again.
     options(warn = oldw)
 }

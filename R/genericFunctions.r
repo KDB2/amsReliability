@@ -64,6 +64,8 @@ Clean <- function(DataTable)
 {
     CleanedTable <- DataTable[DataTable$Status==1 | DataTable$Status==0,]
     CleanedTable <- CleanedTable[order(CleanedTable$"TTF"),] # Sort TTF
+    # Remove ghost levels: levels were no samples are listed anymore.
+    CleanedTable <- droplevels(CleanedTable)
     return(CleanedTable)
 }
 

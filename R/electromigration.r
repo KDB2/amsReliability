@@ -32,9 +32,9 @@
 ###    FUNCTIONS                                                             ###
 ###    ---------------------------------                                     ###
 ###                                                                          ###
-###       ReadDataAce               Read Exportfile and create data table    ###
-###       BlackModelization         Extraction of Black's parameters         ###
 ###       BlackAnalysis             Main function for data analysis          ###
+###       BlackModelization         Extraction of Black's parameters         ###
+###       ReadDataAce               Read Exportfile and create data table    ###
 ###                                                                          ###
 ################################################################################
 
