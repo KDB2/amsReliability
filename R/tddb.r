@@ -63,7 +63,8 @@ ReadDataTDDB <- function(ListFiles)
         Stress <- File[,12]
         Status <- File[,15]
         # Make status similar to Electromigration: -1 wrong device, not to be considered in statistic; 1 failed; 0 not failed.
-        Status[Status != 100 & Status != -1] <- 1
+        # -1 bad sample set manually, 1 is failed before exp, 100 is still ongoing.
+        Status[Status != 100 & Status != -1 & Status != 1] <- 1
         Status[Status == 100] <- 0
         # Device dead during ramp are not considered in statistique (-1). They have a negative TTF
         Status[TTF < 0] <- -1
