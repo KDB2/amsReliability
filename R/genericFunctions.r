@@ -5,11 +5,11 @@
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
 ###       MODULE NAME         genericFunctions.r                             ###
-###       VERSION             0.8                                            ###
+###       VERSION             0.9                                            ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
-###       DATE                2015/11/10                                     ###
+###       DATE                2016/01/13                                     ###
 ###       PLATFORM            Windows 7 & Gnu/Linux 3.16                     ###
 ###       R VERSION           R 3.1.1                                        ###
 ###       REQUIRED PACKAGES   ggplot2, grid, MASS, nlstools, scales          ###
@@ -40,6 +40,7 @@
 ###       Ranking                   Calculation of fraction estimators       ###
 ###                                                                          ###
 ################################################################################
+
 
 
 CalculProbability <- function(Probability, Scale="Lognormal")
@@ -98,8 +99,37 @@ CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title
     lim <- range(ExpDataTable$TTF[ExpDataTable$Status==1]) # Min of the values is stored in [1] and max in  [2]
     lim.high <- 10^(ceiling(log(lim[2],10)))
     lim.low <- 10^(floor(log(lim[1],10)))
+    # 3 decades minimum are needed for a good looking chart.
+    # In case the distribution is only in 1 decade, we add a decade at both ends
+    if ((log10(lim.high) - log10(lim.low)) == 1 ) {
+        lim.high <- lim.high * 10
+        lim.low <- lim.low / 10
+    # if we have already tw0 decades, we add one decade in the area where the data are closer to the edge
+    } else if ((log10(lim.high) - log10(lim.low)) == 2) {
+        if ((log10(lim[1]) - log10(lim.low)) < (log10(lim.high) - log10(lim[2]))){
+            lim.low <- lim.low / 10
+        } else {
+            lim.high <- lim.high * 10
+        }
+    }
+
     # Now that we have the limits, we create the graph labels for x axis.
-    GraphLabels <- 10^(seq(floor(log(lim[1],10)),ceiling(log(lim[2],10))))
+    GraphLabels <- 10^(seq(log10(lim.low),log10(lim.high)))
+    # Now we create the minor ticks
+    ind.lim.high <- log10(lim.high)
+    ind.lim.low <- log10(lim.low)
+    MinorTicks <- rep(seq(1,9), ind.lim.high - ind.lim.low ) * rep(10^seq(ind.lim.low, ind.lim.high-1), each=9)
+
+    # Function used to calculate the distance between ticks for logscale. See line 166:
+    # minor_breaks=trans_breaks(faceplant1, faceplant2, n=length(MinorTicks)))
+    faceplant1 <- function(x) {
+        return (c(x[1]*10^.25, x[2]/10^.25))
+    }
+
+    faceplant2 <- function(x) {
+        return (MinorTicks)
+    }
+    #############################
 
     # Label for y axis
     # Dynamique labels as a function of the minimal probability observed.
@@ -140,12 +170,13 @@ CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title
     Graph <- ggplot(data=CleanExpTable, aes(x=TTF, y=Probability, colour=Conditions, shape=Conditions))
     # box around chart + background
     Graph <- Graph + theme_linedraw() + theme(panel.background = element_rect(fill="gray90", color="black"))
+    # Definition of scales
+    Graph <- Graph + scale_x_log10(limits = c(lim.low,lim.high),breaks = GraphLabels,labels = trans_format("log10", math_format(10^.x)), minor_breaks=trans_breaks(faceplant1, faceplant2, n=length(MinorTicks)))
+    Graph <- Graph + scale_y_continuous(limits=range(ProbaNorm), breaks=ProbaNorm, labels=ListeProba)
     # Grid definitions
     Graph <- Graph + theme(panel.grid.major = element_line(colour="white", size=0.25, linetype=1))
-    Graph <- Graph + theme(panel.grid.minor = element_line(linetype=0, colour="white", size = 0.25))
-    # Definition of scales
-    Graph <- Graph + scale_x_log10(limits = c(lim.low,lim.high),breaks = GraphLabels,labels = trans_format("log10", math_format(10^.x)))
-    Graph <- Graph + scale_y_continuous(limits=range(ProbaNorm), breaks=ProbaNorm, labels=ListeProba )
+    Graph <- Graph + theme(panel.grid.minor = element_line(linetype=2, colour="white", size = 0.25))
+    Graph <- Graph + theme(panel.grid.minor.y = element_line(linetype=0, colour="white", size = 0.25))
     # Controled symbol list -- Max is 20 conditions on the chart.
     Graph <- Graph + scale_shape_manual(values=c(19,15,17,16,19,15,17,16,19,15,17,16,19,15,17,16,19,15,17,16))
     Graph <- Graph + scale_colour_manual(values = c("#d53e4f","#3288bd","#66a61e","#f46d43","#e6ab02","#8073ac","#a6761d","#666666","#bc80bd","#d53e4f","#3288bd","#66a61e","#f46d43","#e6ab02","#8073ac","#a6761d","#666666","#bc80bd","#d53e4f","#3288bd")) # "#5e4fa2" ,"#66c2a5", "#fec44f",
@@ -192,8 +223,9 @@ CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title
 }
 
 
-ErrorEstimation <- function(ExpDataTable, ModelDataTable, ConfidenceValue=0.95)
+ErrorEstimation <- function(ExpDataTable, ModelDataTable, ConfidenceValue=0.95, Scale="Lognormal")
 # Generation of confidence intervals
+# Based on Kaplan Meier estimator and Greenwood confidence intervals
 {
     # list of conditions
     ListConditions <- levels(ExpDataTable$Conditions)
@@ -202,21 +234,30 @@ ErrorEstimation <- function(ExpDataTable, ModelDataTable, ConfidenceValue=0.95)
 
     if (length(ListConditions) != 0){
 
-          for (i in seq_along(ListConditions)){
+          for (condition in ListConditions){
 
-              NbData <- length(ExpDataTable$TTF[ExpDataTable$Conditions == ListConditions[i]])
+              NbData <- length(ExpDataTable$TTF[ExpDataTable$Conditions == condition & ExpDataTable$Status == 1])
               if (NbData > 30) {
                   mZP_Value <- qnorm((1 - ConfidenceValue) / 2) # Normal case. Valid if sample size > 30.
               } else {
                   mZP_Value <- qt((1 - ConfidenceValue) / 2, df=(NbData -1) ) # t-test statistic for low sample size
               }
-              CDF <- pnorm(ModelDataTable$Probability[ModelDataTable$Conditions == ListConditions[i]])
-              sef <- sqrt(CDF * (1 - CDF)/NbData) # TO BE CHECKED
-              LowerLimit <- qnorm(CDF - sef * mZP_Value)
-              HigherLimit <- qnorm(CDF + sef * mZP_Value)
 
-              ConfidenceDataTable <- rbind(ConfidenceDataTable, data.frame('TTF'=ModelDataTable$TTF[ModelDataTable$Conditions == ListConditions[i]],
-                                                                            'LowerLimit'=LowerLimit,'HigherLimit'=HigherLimit,'Conditions'=ListConditions[i]))
+              if (Scale == "Weibull"){
+                  CDF <- 1-exp(-exp(ModelDataTable$Probability[ModelDataTable$Conditions == condition]))
+                  sef <- sqrt(CDF * (1 - CDF)/NbData)
+                  LowerLimit <- log(-log(1-(CDF - sef * mZP_Value)))
+                  HigherLimit <- log(-log(1-(CDF + sef * mZP_Value)))
+
+              } else {
+                  CDF <- pnorm(ModelDataTable$Probability[ModelDataTable$Conditions == condition])
+                  sef <- sqrt(CDF * (1 - CDF)/NbData)
+                  LowerLimit <- qnorm(CDF - sef * mZP_Value)
+                  HigherLimit <- qnorm(CDF + sef * mZP_Value)
+              }
+
+              ConfidenceDataTable <- rbind(ConfidenceDataTable, data.frame('TTF'=ModelDataTable$TTF[ModelDataTable$Conditions == condition],
+                                                                            'LowerLimit'=LowerLimit,'HigherLimit'=HigherLimit,'Conditions'=condition))
         }
     }
     return(ConfidenceDataTable)
@@ -233,10 +274,9 @@ FitDistribution <- function(DataTable,Scale="Lognormal")
     # Initialisation of ModelDataTable
     ModelDataTable <- data.frame()
 
-    for (i in seq_along(ListConditions)){
+    for (ModelCondition in ListConditions){
 
-        # Condition, Stress and Temperature stickers
-        ModelCondition <- ListConditions[i]
+        # Stress and Temperature stickers
         ModelStress <- DataTable$Stress[DataTable$Conditions==ModelCondition][1]
         ModelTemperature <- DataTable$Temperature[DataTable$Conditions==ModelCondition][1]
 
@@ -280,4 +320,37 @@ Ranking <- function(TTF)
 {
     # ties.method="random" handles identical TTFs and provide a unique ID
     rk <- (rank(TTF, ties.method="random")-0.3)/(length(TTF)+0.4)
+}
+
+
+SortConditions <- function(ListConditions)
+# Sort a list of conditions to avoid 6mA being
+# bigger as 14mA
+# Return a list of Conditions sorted.
+{
+  Temperature <- sapply(ListConditions,function(x){strsplit(x,split="[mAV]*/")[[1]][2]})
+  Temperature <- as.numeric(sapply(Temperature,function(x){substr(x,1, nchar(x)-2)}))
+  Currents <- as.numeric(sapply(ListConditions,function(x){strsplit(x,split="[mAV]*/")[[1]][1]}))
+  Table <- data.frame("Conditions"=ListConditions,"Current"=Currents,"Temperature"=Temperature)
+  Table <-  Table[order(Table$Temperature),]
+  ListCurrents <- levels(factor(Currents))
+
+  SortedTable <- data.frame()
+  for (current in ListCurrents){
+    SortedTable <-  rbind(SortedTable,Table[Table$Current==current,])
+  }
+  return(as.character(SortedTable$Conditions))
+}
+
+OrderConditions <- function(DataTable)
+# Order a list of conditions to avoid 6mA being
+# bigger as 14mA.
+# Return a vector of indice.
+{
+    SortedListConditions <- SortConditions(levels(DataTable$Conditions))
+    VecIndices <- c()
+    for (condition in SortedListConditions){
+        VecIndices <- c(VecIndices, which(DataTable$Conditions == condition))
+    }
+    return(VecIndices)
 }

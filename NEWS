@@ -1,3 +1,16 @@
+amsReliability v0.9 (Release date: 2016-01-13)
+==============
+
+Changes:
+* Various OxideTDDB bugs have been corrected. Data status is now correctly read. 
+* Bug in Mira exportfile creation have been solved (unfinished samples are now detected)
+* Conditions were no valid samples are found are no more displayed on charts.
+* Conditions are sorted properly by increasing current/voltage value.
+* Chart enhancement: minimal of 3 decades are always displayed.
+* Minor grid lines are now displayed on the log scale.
+* Confidence intervals have been corrected (Kaplan Maier style). They are now displayed correctly on a Weibull scale.
+* Major code cleanup for enhanced readability and maintainability. 
+
 amsReliability v0.8 (Release date: 2015-11-10)
 ==============
 

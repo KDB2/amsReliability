@@ -5,11 +5,11 @@
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
 ###       MODULE NAME         exportFiles.r                                  ###
-###       VERSION             0.8                                            ###
+###       VERSION             0.9                                            ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
-###       DATE                2015/11/10                                     ###
+###       DATE                2016/01/13                                     ###
 ###       PLATFORM            Windows 7 & Gnu/Linux 3.16                     ###
 ###       R VERSION           R 3.1.1                                        ###
 ###       REQUIRED PACKAGES   ggplot2, grid, MASS, nlstools, scales          ###
@@ -146,12 +146,15 @@ CreateExportFiles.Mira <- function(DegFileName,TCRFileName)
     Temp <- strsplit(DegFileName,split="_")[[1]][4]
     Temp <- as.numeric(substr(Temp, 1, nchar(Temp)-1))
     # DeviceID, Length and width
-    L <- c(200,400)
+    DegFile[DegFile[,1]<31,"L"] <- 200
+    DegFile[DegFile[,1]>30,"L"] <- 400
     DeviceID <- strsplit(DegFileName,split="_")[[1]][2]
     W <- ListDevice$Width[ListDevice$Device==DeviceID]
+    # if MinUsedForFailure is -1 device is not fail -> 0
+    DegFile[DegFile$MinUsedForFailure==-1,10] <- 0
 
     # Mira is made compatible with ACE for the 8 first colum. TTF are in hours. COnversion is made to seconds with 3600 factor.
-    NewFile <- data.frame(DegFile[DegFile$FailureIteration>0,1],DegFile[DegFile$FailureIteration>0,10],3600*DegFile[DegFile$FailureIteration>0,9],DegFile[DegFile$FailureIteration>0,8],Istress,L,W,Temp,DeviceID,DegFile[DegFile$FailureIteration>0,2],TCRFile[TCRFile$Device==4,3:8])
+    NewFile <- data.frame(DegFile[DegFile$ValueAtTimeZero>0,1],DegFile[DegFile$ValueAtTimeZero>0,10],3600*DegFile[DegFile$ValueAtTimeZero>0,9],DegFile[DegFile$ValueAtTimeZero>0,8],Istress,DegFile[DegFile$ValueAtTimeZero>0,17],W,Temp,DeviceID,DegFile[DegFile$ValueAtTimeZero>0,2],TCRFile[TCRFile$Device==4,3:8])
     #names(NewFile) <- c("#RESISTANCE#pkgNum","FailedDevice","FailureTime","Split","Istress","L","W","Temp","DeviceID","ValueAtTimeZero","Rref(in Ohms)","TCR(in %/°C)","R(stress)","T(stress)","T(stress)-OvenT","Theta(°C/W)")
     names(NewFile) <- c("Device","Failed","Lifetime[s]","Split","Istress","L","W","Temp","DeviceID","ValueAtTimeZero","Rref(in Ohms)","TCR(in %/°C)","R(stress)","T(stress)","T(stress)-OvenT","Theta(°C/W)")
 

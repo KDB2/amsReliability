@@ -5,11 +5,11 @@
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
 ###       MODULE NAME         tddb.r                                         ###
-###       VERSION             0.8                                            ###
+###       VERSION             0.9                                            ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
-###       DATE                2015/11/10                                     ###
+###       DATE                2016/01/13                                     ###
 ###       PLATFORM            Windows 7 & Gnu/Linux 3.16                     ###
 ###       R VERSION           R 3.1.1                                        ###
 ###       REQUIRED PACKAGES   ggplot2, grid, MASS, nlstools, scales          ###
@@ -40,7 +40,7 @@
 
 
 ReadDataTDDB <- function(ListFiles)
-# Read the exportfiles listed in ListFile and store them in a dataframe.
+#Read the exportfiles listed in ListFile and store them in a dataframe.
 # First read all the files and then calculate the probability scale
 # for each condition. This allows to work with conditions splitted in different files.
 # Data are cleaned to remove bad units
@@ -49,12 +49,12 @@ ReadDataTDDB <- function(ListFiles)
     # ResTable initialisation
     ResTable <- data.frame()
 
-    for (i in seq_along(ListFiles)){
+    for (FileName in ListFiles){
 
         # Find the line where the data are stored. They start after [DATA].
-        StartLine <- grep('DATA]', readLines(ListFiles[i]) )
+        StartLine <- grep('DATA]', readLines(FileName) )
         # Read the file. Data start two lines after [DATA]
-        File <- read.delim(ListFiles[i], skip=StartLine+2, header=FALSE)
+        File <- read.delim(FileName, skip=StartLine+2, header=FALSE)
 
         # Store important data
         TTF <- File[,14]
@@ -78,7 +78,7 @@ ReadDataTDDB <- function(ListFiles)
         TTF[Status==0] <- 1E30
         Stress[Status==0] <- as.numeric(substr(as.character(File[Status==0,2]), 2, nchar(as.character(File[Status==0,2]))))
         # Condition stickers
-        Conditions <- paste(Stress,"V/",Temperature,"C",sep="")
+        Conditions <- paste(Stress,"V/",Temperature,"°C",sep="")
         # Creation of a dataframe to store the data
         TempDataFrame <- data.frame(TTF,Status,Conditions,Stress,Temperature,Dimension)
         # Force the column names
@@ -105,16 +105,22 @@ ReadDataTDDB <- function(ListFiles)
     ExpDataTable <- data.frame()
 
     # For each condition found, we calculate the probability of failure. Data are stacked in ExpDataFrame. Weibull scale is used.
-    for (i in seq_along(CondList)){
+    for (condition in CondList){
 
-        TempDataTable <- CreateDataFrame(ResTable$TTF[ResTable$Conditions==CondList[i]], ResTable$Status[ResTable$Conditions==CondList[i]],
-          ResTable$Condition[ResTable$Conditions==CondList[i]], ResTable$Stress[ResTable$Conditions==CondList[i]], ResTable$Temperature[ResTable$Conditions==CondList[i]], Scale="Weibull",ResTable$Dimension[ResTable$Conditions==CondList[i]])
+        TempDataTable <- CreateDataFrame(ResTable$TTF[ResTable$Conditions==condition], ResTable$Status[ResTable$Conditions==condition,
+          ResTable$Condition[ResTable$Conditions==condition], ResTable$Stress[ResTable$Conditions==condition], ResTable$Temperature[ResTable$Conditions==condition], Scale="Weibull",ResTable$Dimension[ResTable$Conditions==condition])
 
         ExpDataTable <- rbind(ExpDataTable,TempDataTable)
     }
 
     # We force the new names here as a security check.
     names(ExpDataTable) <- c("TTF", "Status", "Probability", "Conditions", "Stress", "Temperature","Dimension")
+    # Order the condition in numerical/alphabetical order
+    ExpDataTable <- ExpDataTable[OrderConditions(ExpDataTable),]
+    # Do the same for conditions levels
+    ExpDataTable$Conditions <- factor(ExpDataTable$Conditions, SortConditions(levels(ExpDataTable$Conditions)))
+
+
     return(ExpDataTable)
 
 }
@@ -143,7 +149,7 @@ OxideLifetimeModelization <- function(DataTable,DeviceID)
     # Parameters Extraction
     t0 <- coef(Model)[1]
     g <- coef(Model)[2]
-    Ea <-coef(Model)[3]
+    Ea <- coef(Model)[3]
     beta <- coef(Model)[4]
     # Residual Sum of Squares
     RSS <- sum(resid(Model)^2)
@@ -157,11 +163,10 @@ OxideLifetimeModelization <- function(DataTable,DeviceID)
     # Initialisation
     ModelDataTable <- data.frame()
     # y axis points are calculated. (limits 0.01% -- 99.99%) Necessary to have nice confidence bands.
-    Proba <-  seq(log(-log(1-0.001)),log(-log(1-0.9999)),0.05) # Weibit
+    Proba <-  seq(log(-log(1-0.0001)),log(-log(1-0.9999)),0.05) # Weibit
 
-    for (i in seq_along(ListConditions)){
+    for (Condition in ListConditions){
         # Experimental conditions:
-        Condition <- ListConditions[i]
         V <- CleanDataTable$Stress[CleanDataTable$Conditions==Condition][1]
         Temp <- CleanDataTable$Temperature[CleanDataTable$Conditions==Condition][1]  # °C
         Area <- CleanDataTable$Dimension[CleanDataTable$Conditions==Condition][1] * 1E-12 # m^2
@@ -225,28 +230,28 @@ OxideTDDB <- function(ErrorBand=FALSE, ConfidenceValue=0.95, Save=TRUE)
     # case 1, there are one or several files available
     if (length(ListFiles) != 0){
           # List of DeviceID available in the selected exportfiles
-          DeviceID <- levels(sapply(ListFiles,function(x){factor(strsplit(x,split="_")[[1]][1])}))
+          DeviceIDList <- levels(sapply(ListFiles,function(x){factor(strsplit(x,split="_")[[1]][1])}))
 
-          for (i in seq_along(DeviceID)){
-              SubListFiles <- ListFiles[grep(DeviceID[i],ListFiles)]
+          for (DeviceID in DeviceIDList){
+              SubListFiles <- ListFiles[grep(DeviceID,ListFiles)]
               # Import the file(s) and create the 3 dataframes + display data
               DataTable <- ReadDataTDDB(SubListFiles)
               # Attempt to modelize. If succes, we plot the chart, otherwise we only plot the data.
-              ModelDataTable <- try(OxideLifetimeModelization(DataTable, DeviceID[i]),silent=TRUE)
+              ModelDataTable <- try(OxideLifetimeModelization(DataTable, DeviceID),silent=TRUE)
               # Check if the modelization is a succes
               if (class(ModelDataTable) != "try-error"){
-                    ErrorDataTable <- ErrorEstimation(DataTable, ModelDataTable, ConfidenceValue)
-                    CreateGraph(DataTable,ModelDataTable,ErrorDataTable,DeviceID[i],Scale="Weibull",ErrorBand,Save)
+                    ErrorDataTable <- ErrorEstimation(DataTable, ModelDataTable, ConfidenceValue, Scale="Weibull")
+                    CreateGraph(DataTable,ModelDataTable,ErrorDataTable,DeviceID,Scale="Weibull",ErrorBand,Save)
               } else { # if modelization is not a success, we display the data and return parameters of the distribution in the console (scale and loc) in case user need them.
                     ModelDataTable <- FitDistribution(DataTable,Scale="Weibull")
-                    CreateGraph(DataTable,ModelDataTable,DataTable,DeviceID[i],Scale="Weibull",ErrorBand=FALSE,Save=FALSE)
+                    CreateGraph(DataTable,ModelDataTable,DataTable,DeviceID,Scale="Weibull",ErrorBand=FALSE,Save=FALSE)
               }
           }
 
     } else { # case 2, there are no files available
           print("You need to create the export files first!")
     }
-    #return(DataTable)
+    # return(DataTable)
     # Warning are set on again.
     options(warn = oldw)
 }
