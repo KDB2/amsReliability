@@ -107,7 +107,7 @@ ReadDataTDDB <- function(ListFiles)
     # For each condition found, we calculate the probability of failure. Data are stacked in ExpDataFrame. Weibull scale is used.
     for (condition in CondList){
 
-        TempDataTable <- CreateDataFrame(ResTable$TTF[ResTable$Conditions==condition], ResTable$Status[ResTable$Conditions==condition,
+        TempDataTable <- CreateDataFrame(ResTable$TTF[ResTable$Conditions==condition], ResTable$Status[ResTable$Conditions==condition],
           ResTable$Condition[ResTable$Conditions==condition], ResTable$Stress[ResTable$Conditions==condition], ResTable$Temperature[ResTable$Conditions==condition], Scale="Weibull",ResTable$Dimension[ResTable$Conditions==condition])
 
         ExpDataTable <- rbind(ExpDataTable,TempDataTable)
