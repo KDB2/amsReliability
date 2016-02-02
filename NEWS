@@ -1,3 +1,10 @@
+amsReliability v0.9.1 (Release date: 2016-02-02)
+==============
+
+Changes:
+* GUI available to select files to be analyzed. 
+* Major code cleanup for enhanced readability and maintainability. 
+
 amsReliability v0.9 (Release date: 2016-01-13)
 ==============
 
