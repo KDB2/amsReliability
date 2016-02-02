@@ -5,7 +5,7 @@
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
 ###       MODULE NAME         exportFiles.r                                  ###
-###       VERSION             0.9                                            ###
+###       VERSION             0.9.1                                          ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###

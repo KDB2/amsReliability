@@ -5,7 +5,7 @@
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
 ###       MODULE NAME         genericFunctions.r                             ###
-###       VERSION             0.9                                            ###
+###       VERSION             0.9.1                                          ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
@@ -40,6 +40,41 @@
 ###       Ranking                   Calculation of fraction estimators       ###
 ###                                                                          ###
 ################################################################################
+
+
+###### List of Constants  ######
+k <- 1.38E-23 # Boltzmann
+e <- 1.6E-19 # electron charge
+################################
+
+
+CalculLifeTime <- function(Model, Area, Stress, Temperature, Probability,  Law="BlackLaw")
+# Calcul the lifetime of a device for a given condition (Temp/stress) at a given failure rate
+# with a given model.
+# For TDDB, area is transformed in m² whereas it is already given in m² for EM.
+# Currently supports Black equation and a TDDB lifetime model.
+{
+    if (Law == "BlackLaw") {
+        # Parameters Extraction
+        A <- coef(Model)[1]
+        n <- coef(Model)[2]
+        Ea <-coef(Model)[3]
+        Scale <- coef(Model)[4]
+
+        TTF <- exp(A)*(Stress*0.001/Area)^(-n)*exp((Ea*e)/(k*(273.15+Temperature))+ Probability * Scale)
+
+    } else if (Law == "TDDB"){
+        # Parameters Extraction
+        t0 <- coef(Model)[1]
+        g <- coef(Model)[2]
+        Ea <- coef(Model)[3]
+        beta <- coef(Model)[4]
+
+        TTF <- exp(t0)*exp(-g*Stress)*exp((Ea*e)/(k*(Temperature+273.15)))*(Area*1E-12)^(-1/beta)*exp(Probability/beta)
+
+    }
+    return(TTF)
+}
 
 
 CalculProbability <- function(Probability, Scale="Lognormal")
@@ -134,31 +169,26 @@ CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title
     # Dynamique labels as a function of the minimal probability observed.
     # Minimal proba is 0.01 %
 
-    #  Weibull
-    if (Scale == "Weibull") {
-        if (ExpDataTable[1,"Probability"]<= CalculProbability(0.1/100,Scale)){ # Case 1: lower than 0.1%
-            ListeProba <- c(0.01,0.1,1,2,3,5,10,20,30,40,50,63,70,80,90,95,99,99.9,99.99)
-        }
-        if (ExpDataTable[1,"Probability"]<= CalculProbability(1/100,Scale) && ExpDataTable[1,"Probability"]>= CalculProbability(0.1/100,Scale)){ # Case 2: lower than 1% but higher than 0.1%
-            ListeProba <- c(0.1,1,2,3,5,10,20,30,40,50,63,70,80,90,95,99,99.9)
-        }
-        if (ExpDataTable[1,"Probability"] >= CalculProbability(1/100,Scale)) { # Case 3: higher than 1%
-            ListeProba <- c(1,2,3,5,10,20,30,40,50,63,70,80,90,95,99)
-        }
+    # Case 0: Proba min is above 1%
+    if (Scale == "Weibull"){ # Weibull requires 63% and details in low %
+        ListeProba <- c(1,2,3,5,10,20,30,40,50,63,70,80,90,95,99)
+    } else { # Lognormal scale is symetric.
+        ListeProba <- c(1,5,10,20,30,40,50,60,70,80,90,95,99)
+    }
+
+    MinProba <- min(ExpDataTable$Probability)
+
+    if (MinProba <= CalculProbability(1/100,Scale)){ # Case 1: lower than 1%
+        ListeProba <- c(0.1,ListeProba, 99.9)
+    }
+    if (MinProba <= CalculProbability(0.1/100,Scale)){ # Case 2: lower than 0.1%
+        ListeProba <- c(0.01,ListeProba, 99.99)
+    }
+
+    # Probability vector used to draw y axis.
     ProbaNorm <- CalculProbability(ListeProba/100,Scale)
 
-    } else { # Lognormal
-        if (ExpDataTable[1,"Probability"]<= qnorm(0.1/100)){ # Case 1: lower than 0.1%
-            ListeProba <- c(0.01,0.1,1,5,10,20,30,40,50,60,70,80,90,95,99,99.9,99.99)
-        }
-        if (ExpDataTable[1,"Probability"]<= qnorm(1/100) && ExpDataTable[1,"Probability"]>= qnorm(0.1/100)){ # Case 2: lower than 1% but higher than 0.1%
-            ListeProba <- c(0.1,1,5,10,20,30,40,50,60,70,80,90,95,99,99.9)
-        }
-        if (ExpDataTable[1,"Probability"] >= qnorm(1/100)) { # Case 3: higher than 1%
-            ListeProba <- c(1,5,10,20,30,40,50,60,70,80,90,95,99)
-        }
-    ProbaNorm <- qnorm(ListeProba/100)
-    }
+
 
     # We are only going to plot samples where status is '1' (experiment is finished).
     # Table is sorted & conditions stay togeteher.
@@ -222,6 +252,33 @@ CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title
 }
 
 
+CreateModelDataTable <- function(Model, ListConditions, Area, Law="BlackLaw", Scale="Lognormal")
+# Return a theoretical lifetime for a given set of Conditions and a given model.
+# Result is returned in a dataframe.
+# Currently supported model are Black equation and a TDDB lifetime model.
+{
+    # Initialisation
+    ModelDataTable <- data.frame()
+    # y axis points are calculated. (limits 0.01% -- 99.99%) Necessary to have nice confidence bands.
+    Proba <- seq(CalculProbability(0.0001, Scale), CalculProbability(0.9999, Scale), 0.05)
+
+    # Extraction of temperature and stress conditions
+    Temperature <- sapply(ListConditions,function(x){strsplit(x,split="[mAV]*/")[[1]][2]})
+    Temperature <- as.numeric(sapply(Temperature,function(x){substr(x,1, nchar(x)-2)}))
+    Stress <- as.numeric(sapply(ListConditions,function(x){strsplit(x,split="[mAV]*/")[[1]][1]}))
+
+    for (i in seq_along(Temperature)){
+
+        # TTF calculation
+        TTF <- CalculLifeTime(Model, Area, Stress[i], Temperature[i], Proba, Law)
+        # Dataframe creation
+        ModelDataTable <- rbind(ModelDataTable, data.frame('TTF'=TTF,'Status'=1,'Probability'=Proba,'Conditions'=ListConditions[i],'Stress'=Stress[i],'Temperature'=Temperature[i], 'Area'=Area))
+
+    }
+    return(ModelDataTable)
+}
+
+
 ErrorEstimation <- function(ExpDataTable, ModelDataTable, ConfidenceValue=0.95, Scale="Lognormal")
 # Generation of confidence intervals
 # Based on Kaplan Meier estimator and Greenwood confidence intervals
@@ -266,6 +323,7 @@ ErrorEstimation <- function(ExpDataTable, ModelDataTable, ConfidenceValue=0.95, 
 FitDistribution <- function(DataTable,Scale="Lognormal")
 # Extract simple distribution parameters (MTTF, scale) and return
 # a ModelDataTable to plot the theoretical distribution
+# Use fitdistr function
 {
     # For each condtion we estimate a theoretical distribution
     ListConditions <- levels(DataTable$Conditions)
@@ -309,8 +367,54 @@ FitDistribution <- function(DataTable,Scale="Lognormal")
         ModelDataTable <- rbind(ModelDataTable, data.frame('TTF'=x,'Status'=1,'Probability'=y,'Conditions'=ModelCondition,'Stress'=ModelStress,'Temperature'=ModelTemperature) )
     }
     return(ModelDataTable)
-
 }
+
+
+FitResultsDisplay <- function(Model, DataTable, DeviceID)
+# Given a model and an experimental dataset
+# Return the parameters of the model and the residual error
+# Save the information in a fit.txt file
+{
+    CleanDataTable <- DataTable[DataTable$Status==1,]
+    # Residual Sum of Squares
+    RSS <- sum(resid(Model)^2)
+    # Total Sum of Squares: TSS <- sum((TTF - mean(TTF))^2))
+    TSS <- sum(sapply(split(CleanDataTable[,1],CleanDataTable$Conditions),function(x) sum((x-mean(x))^2)))
+    Rsq <- 1-RSS/TSS # R-squared measure
+
+    # Drawing of the residual plots
+    plot(nlsResiduals(Model))
+    # Display of fit results
+    cat(DeviceID,"\n")
+    print(summary(Model))
+    cat(paste("Residual squared sum: ",RSS,sep=""))
+    # Save in a file
+    capture.output(summary(Model),file="fit.txt")
+    cat("Residual Squared sum:\t",file="fit.txt",append=TRUE)
+    cat(RSS,file="fit.txt",append=TRUE)
+    cat("\n \n",file="fit.txt",append=TRUE)
+    cat("Experimental Data:",file="fit.txt",append=TRUE)
+    cat("\n",file="fit.txt",append=TRUE)
+    capture.output(DataTable,file="fit.txt",append=TRUE)
+}
+
+
+ModelFit <- function(dataTable, Law="BlackLaw")
+# Perform a least square fit on an experimental dataset
+# Return a model containing the parameters and the residuals.
+{
+    if (Law == "BlackLaw") {
+        # Black model / Log scale: use of log10 to avoid giving too much importance to data with a high TTF
+        Model <- nls(log10(TTF) ~ log10(exp(A)*(Stress*1E-3/Area)^(-n)*exp((Ea*e)/(k*(Temperature+273.15))+Scale*Probability)), dataTable,
+                start=list(A=30,n=1,Ea=0.7,Scale=0.3),control= list(maxiter = 50, tol = 1e-7))#, minFactor = 1E-5, printEval = FALSE, warnOnly = FALSE))#,trace = T)
+    } else if (Law == "TDDB"){
+        # TDDB model / Log scale: use of log10 to avoid giving too much importance to data with a high TTF
+        Model <- nls(log10(TTF) ~ log10(exp(t0)*exp(-g*Stress)*exp((Ea*e)/(k*(Temperature+273.15)))*(Area*1E-12)^(-1/beta)*exp(Probability/beta)), dataTable,
+                start=list(t0=30,g=1,Ea=0.2,beta=1),control= list(maxiter = 50, tol = 1e-6))#, minFactor = 1E-5, printEval = FALSE, warnOnly = FALSE))#,trace = T)
+    }
+    return(Model)
+}
+
 
 Ranking <- function(TTF)
 # Fraction estimator calculation
@@ -319,6 +423,38 @@ Ranking <- function(TTF)
 {
     # ties.method="random" handles identical TTFs and provide a unique ID
     rk <- (rank(TTF, ties.method="random")-0.3)/(length(TTF)+0.4)
+}
+
+
+SelectFiles <- function()
+# Allow graphical selection of multiple files.
+# Return them as a list.
+{
+    # Create the Path.
+    # initFile is used to enter the right directory.
+    # initFile is removed before returning the list
+    initFile <- list.files(pattern="bidule.txt")
+    path2Current <- paste(getwd(), "/", initFile[1], sep="")
+
+    # Filters for file selection
+    Filters <- matrix(c("All files", "*", "Export Files", "*exportfile.txt", "Text", ".txt"),3, 2, byrow = TRUE)
+
+    # Gui for file selection
+    selection <- tk_choose.files(default = path2Current, caption = "Select files",
+                            multi = TRUE, filters = Filters, index = 1)
+
+    # Cleaning to remove the path and keep only the filename (last item)
+    if (Sys.info()[['sysname']] == "Windows"){
+        # List of file
+        listFiles <- sapply(strsplit(selection,split="/"),function(x){x[length(x)]})
+        # new working path
+        newWD <- substr(selection[1], 1, nchar(selection[1])-nchar(listFiles[1]))
+        setwd(newWD)
+    } else {
+        listFiles <- sapply(strsplit(selection[-1],split="/"),function(x){x[length(x)]})
+    }
+
+    return(listFiles)
 }
 
 
@@ -340,6 +476,7 @@ SortConditions <- function(ListConditions)
   }
   return(as.character(SortedTable$Conditions))
 }
+
 
 OrderConditions <- function(DataTable)
 # Order a list of conditions to avoid 6mA being
