@@ -78,7 +78,7 @@ RelAnalysis <- function()
     # About & Update Menu
     about <- tkmenu(topMenu, tearoff=FALSE)
     tkadd(about,"command",label="Update",
-          command=function() {AutoUpdate(); tkdestroy(tt); amsReliability()}) # reload GUI after update.
+          command=function() {AutoUpdate(); tkdestroy(tt); RelAnalysis()}) # reload GUI after update.
 
     boxFont <- tkfont.create(size=10,weight ="bold")
     boxText <- tklabel(about, text="Welcome in amsReliability!")
@@ -182,7 +182,7 @@ RelAnalysis <- function()
         }
 
         Sys.sleep(0.5)
-        amsReliability()
+        RelAnalysis()
     }
 
 
