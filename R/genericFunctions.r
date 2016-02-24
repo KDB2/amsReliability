@@ -5,11 +5,11 @@
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
 ###       MODULE NAME         genericFunctions.r                             ###
-###       VERSION             0.9.1                                          ###
+###       VERSION             0.10                                           ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
-###       DATE                2016/01/13                                     ###
+###       DATE                2016/02/24                                     ###
 ###       PLATFORM            Windows 7 & Gnu/Linux 3.16                     ###
 ###       R VERSION           R 3.1.1                                        ###
 ###       REQUIRED PACKAGES   ggplot2, grid, MASS, nlstools, scales          ###
@@ -73,7 +73,7 @@ CalculLifeTime <- function(Model, Area, Stress, Temperature, Probability,  Law="
         TTF <- exp(t0)*exp(-g*Stress)*exp((Ea*e)/(k*(Temperature+273.15)))*(Area*1E-12)^(-1/beta)*exp(Probability/beta)
 
     }
-    return(TTF)
+    return(as.numeric(TTF))
 }
 
 
@@ -122,133 +122,6 @@ CreateDataFrame <- function(TTF, Status, Condition, Stress, Temperature, Scale="
     # Generation of the final data frame
     DataTable <- data.frame('TTF'=TTF,'Status'=Status,'Probability'=Proba,'Conditions'=Condition, 'Stress'=Stress, 'Temperature'=Temperature, 'Dimension'=Dimension)
     return(DataTable)
-}
-
-
-CreateGraph <- function(ExpDataTable, ModelDataTable, ConfidenceDataTable, Title="", Scale="Lognormal", ErrorBands=TRUE, Save=TRUE)
-# Use the table prepared with CreateDataFrame and create the probability plot.
-# Default is Lonormale scale but Weibull is available as an option.
-{
-    # x scale limits calculation based on the data.
-    lim <- range(ExpDataTable$TTF[ExpDataTable$Status==1]) # Min of the values is stored in [1] and max in  [2]
-    lim.high <- 10^(ceiling(log(lim[2],10)))
-    lim.low <- 10^(floor(log(lim[1],10)))
-    # 3 decades minimum are needed for a good looking chart.
-    # In case the distribution is only in 1 decade, we add a decade at both ends
-    if ((log10(lim.high) - log10(lim.low)) == 1 ) {
-        lim.high <- lim.high * 10
-        lim.low <- lim.low / 10
-    # if we have already tw0 decades, we add one decade in the area where the data are closer to the edge
-    } else if ((log10(lim.high) - log10(lim.low)) == 2) {
-        if ((log10(lim[1]) - log10(lim.low)) < (log10(lim.high) - log10(lim[2]))){
-            lim.low <- lim.low / 10
-        } else {
-            lim.high <- lim.high * 10
-        }
-    }
-
-    # Now that we have the limits, we create the graph labels for x axis.
-    GraphLabels <- 10^(seq(log10(lim.low),log10(lim.high)))
-    # Now we create the minor ticks
-    ind.lim.high <- log10(lim.high)
-    ind.lim.low <- log10(lim.low)
-    MinorTicks <- rep(seq(1,9), ind.lim.high - ind.lim.low ) * rep(10^seq(ind.lim.low, ind.lim.high-1), each=9)
-
-    # Function used to calculate the distance between ticks for logscale. See line 166:
-    # minor_breaks=trans_breaks(faceplant1, faceplant2, n=length(MinorTicks)))
-    faceplant1 <- function(x) {
-        return (c(x[1]*10^.25, x[2]/10^.25))
-    }
-
-    faceplant2 <- function(x) {
-        return (MinorTicks)
-    }
-    #############################
-
-    # Label for y axis
-    # Dynamique labels as a function of the minimal probability observed.
-    # Minimal proba is 0.01 %
-
-    # Case 0: Proba min is above 1%
-    if (Scale == "Weibull"){ # Weibull requires 63% and details in low %
-        ListeProba <- c(1,2,3,5,10,20,30,40,50,63,70,80,90,95,99)
-    } else { # Lognormal scale is symetric.
-        ListeProba <- c(1,5,10,20,30,40,50,60,70,80,90,95,99)
-    }
-
-    MinProba <- min(ExpDataTable$Probability)
-
-    if (MinProba <= CalculProbability(1/100,Scale)){ # Case 1: lower than 1%
-        ListeProba <- c(0.1,ListeProba, 99.9)
-    }
-    if (MinProba <= CalculProbability(0.1/100,Scale)){ # Case 2: lower than 0.1%
-        ListeProba <- c(0.01,ListeProba, 99.99)
-    }
-
-    # Probability vector used to draw y axis.
-    ProbaNorm <- CalculProbability(ListeProba/100,Scale)
-
-
-
-    # We are only going to plot samples where status is '1' (experiment is finished).
-    # Table is sorted & conditions stay togeteher.
-    CleanExpTable <- ExpDataTable[ExpDataTable$Status==1,]
-    CleanExpTable <- CleanExpTable[order(CleanExpTable$"Conditions"),]
-
-    # Graph creation with CleanTable
-    Graph <- ggplot(data=CleanExpTable, aes(x=TTF, y=Probability, colour=Conditions, shape=Conditions))
-    # box around chart + background
-    Graph <- Graph + theme_linedraw() + theme(panel.background = element_rect(fill="gray90", color="black"))
-    # Definition of scales
-    Graph <- Graph + scale_x_log10(limits = c(lim.low,lim.high),breaks = GraphLabels,labels = trans_format("log10", math_format(10^.x)), minor_breaks=trans_breaks(faceplant1, faceplant2, n=length(MinorTicks)))
-    Graph <- Graph + scale_y_continuous(limits=range(ProbaNorm), breaks=ProbaNorm, labels=ListeProba)
-    # Grid definitions
-    Graph <- Graph + theme(panel.grid.major = element_line(colour="white", size=0.25, linetype=1))
-    Graph <- Graph + theme(panel.grid.minor = element_line(linetype=2, colour="white", size = 0.25))
-    Graph <- Graph + theme(panel.grid.minor.y = element_line(linetype=0, colour="white", size = 0.25))
-    # Controled symbol list -- Max is 20 conditions on the chart.
-    Graph <- Graph + scale_shape_manual(values=c(19,15,17,16,19,15,17,16,19,15,17,16,19,15,17,16,19,15,17,16))
-    Graph <- Graph + scale_colour_manual(values = c("#d53e4f","#3288bd","#66a61e","#f46d43","#e6ab02","#8073ac","#a6761d","#666666","#bc80bd","#d53e4f","#3288bd","#66a61e","#f46d43","#e6ab02","#8073ac","#a6761d","#666666","#bc80bd","#d53e4f","#3288bd")) # "#5e4fa2" ,"#66c2a5", "#fec44f",
-    Graph <- Graph + geom_point(size=4)+annotation_logticks(sides='tb')
-    # Add the theoretical model
-    Graph <- Graph + geom_line(data=ModelDataTable, aes(color=Conditions), size=0.8)
-    # Add the confidence intervals
-    if (ErrorBands==TRUE) {
-        Graph <- Graph + geom_line(data=ConfidenceDataTable, aes(x=TTF, y=LowerLimit, color=Conditions), linetype="dashed", size=0.8)
-        Graph <- Graph + geom_line(data=ConfidenceDataTable, aes(x=TTF, y=HigherLimit, color=Conditions), linetype="dashed",size=0.8)
-    }
-    # Font size & x/y titles...
-    Graph <- Graph + xlab("Time to Failure (s)") + ylab("Probability (%)")
-    Graph <- Graph + theme(axis.title.x = element_text(face="bold", size=16))
-    Graph <- Graph + theme(axis.title.y = element_text(face="bold", size=16))
-    # legend size
-    Graph <- Graph + theme(legend.title = element_text(size=14, face="bold"))
-    Graph <- Graph + theme(legend.text = element_text(size = 12))
-    # Box around legend
-    Graph <- Graph + theme(legend.background = element_rect())
-    Graph <- Graph + theme(legend.background = element_rect(fill="gray90", size=.5, linetype="dotted"))
-    #Box around the conditions in legend
-    Graph <- Graph + theme(legend.key = element_rect(fill="gray90", colour = "black", linetype=0))
-    # Label/ticks size
-    Graph <- Graph + theme(axis.text.x = element_text(face="bold", size=16, margin=margin(0.4,0,0,0, "cm")))
-    Graph <- Graph + theme(axis.text.y = element_text(size=16, margin=margin(0,0.4,0,0.2, "cm")))
-    Graph <- Graph + theme(axis.ticks.length = unit(-0.25, "cm"))#, axis.ticks.margin = unit(0.4, "cm")) #Depreciated see margin above.
-    # Add a title
-    Graph <- Graph + ggtitle(Title)
-    Graph <- Graph + theme(plot.title = element_text(face="bold", size=18))
-
-    print(Graph)
-
-    # Save as png & pdf
-    if (Save == TRUE){
-        if (Title != ""){
-            ggsave(filename=paste(Title,"png",sep="."),dpi=300)
-            #ggsave(filename=paste(Title,"pdf",sep="."))
-        } else {
-            ggsave(filename="Chart.png",dpi=300)
-            #ggsave(filename="Chart.pdf")
-        }
-    }
 }
 
 
@@ -326,7 +199,8 @@ FitDistribution <- function(DataTable,Scale="Lognormal")
 # Use fitdistr function
 {
     # For each condtion we estimate a theoretical distribution
-    ListConditions <- levels(DataTable$Conditions)
+    # A condition needs to have at least one good sample to be counted
+    ListConditions <- levels(DataTable$Conditions[DataTable$Status==1,drop=TRUE])
 
     # Initialisation of ModelDataTable
     ModelDataTable <- data.frame()
@@ -387,15 +261,29 @@ FitResultsDisplay <- function(Model, DataTable, DeviceID)
     # Display of fit results
     cat(DeviceID,"\n")
     print(summary(Model))
-    cat(paste("Residual squared sum: ",RSS,sep=""))
+    cat(paste("Residual squared sum: ",RSS, "\n",sep=""))
+    cat(paste("Log likelihood: ",logLik(Model), "\n",sep=""))
+    cat(paste("Akaike information criterion: ",AIC(Model), "\n",sep=""))
+    cat(paste("Bayesian information criterion: ",BIC(Model), "\n",sep=""))
     # Save in a file
     capture.output(summary(Model),file="fit.txt")
     cat("Residual Squared sum:\t",file="fit.txt",append=TRUE)
     cat(RSS,file="fit.txt",append=TRUE)
+    cat(paste("\nLog likelihood\t", logLik(Model), "\n", sep=""), file="fit.txt", append=TRUE)
+    cat(paste("Akaike information criterion\t", AIC(Model), "\n", sep=""), file="fit.txt", append=TRUE)
+    cat(paste("Bayesian information criterion\t", BIC(Model), "\n", sep=""), file="fit.txt", append=TRUE)
     cat("\n \n",file="fit.txt",append=TRUE)
     cat("Experimental Data:",file="fit.txt",append=TRUE)
     cat("\n",file="fit.txt",append=TRUE)
-    capture.output(DataTable,file="fit.txt",append=TRUE)
+}
+
+
+KeepOnlyFailed <- function(dataTable)
+# Modelization and error calculation is only performed on failed samples
+# Remove all the other samples and drop the ghost levels.
+{
+    dataTable <- droplevels(dataTable[dataTable$Status == 1,])
+    return(dataTable)
 }
 
 
@@ -426,33 +314,61 @@ Ranking <- function(TTF)
 }
 
 
-SelectFiles <- function()
+SaveData2File <- function(data, file)
+# Save Data to a file
+{
+    capture.output(data, file=file, append=TRUE)
+}
+
+
+SelectFiles <- function(Filters=GenericFilters)
 # Allow graphical selection of multiple files.
 # Return them as a list.
 {
     # Create the Path.
-    # initFile is used to enter the right directory.
-    # initFile is removed before returning the list
-    initFile <- list.files(pattern="bidule.txt")
-    path2Current <- paste(getwd(), "/", initFile[1], sep="")
+    # This path is used to enter the working directory directory.
+    # False file 'select a file' force the entry in the wd.
+    path2Current <- paste(getwd(), "/", "Select_a_file", sep="")
 
-    # Filters for file selection
-    Filters <- matrix(c("All files", "*", "Export Files", "*exportfile.txt", "Text", ".txt"),3, 2, byrow = TRUE)
+    # Generic filters for file selection
+    GenericFilters <- matrix(c("All files", "*", "Export Files", "*exportfile.txt", "Text", ".txt"),3, 2, byrow = TRUE)
 
     # Gui for file selection
     selection <- tk_choose.files(default = path2Current, caption = "Select files",
                             multi = TRUE, filters = Filters, index = 1)
 
-    # Cleaning to remove the path and keep only the filename (last item)
-    if (Sys.info()[['sysname']] == "Windows"){
-        # List of file
-        listFiles <- sapply(strsplit(selection,split="/"),function(x){x[length(x)]})
-        # new working path
-        newWD <- substr(selection[1], 1, nchar(selection[1])-nchar(listFiles[1]))
-        setwd(newWD)
-    } else {
-        listFiles <- sapply(strsplit(selection[-1],split="/"),function(x){x[length(x)]})
+    if (Sys.info()[['sysname']] == "Linux"){
+        # On  Linux, first file is removed as it is empty. Coming from path2Current
+        selection <- selection[-1]
     }
+
+    return(selection)
+}
+
+
+SelectFilesAdvanced <- function(Filters)
+# Allow graphical selection of multiple files
+# Return the file name only
+# set the working directory to the directory where the file where selected.
+{
+
+    if (missing(Filters)){
+        selection <- SelectFiles()
+    } else {
+        selection <- SelectFiles(Filters)
+    }
+
+    if (length(selection) == 0){
+        stop("File selection is empty.")
+    }
+
+    # Cleaning to remove the path and keep only the filename (last item)
+    listFiles <- sapply(selection, basename)
+    # Rename to avoid ugly naming of the list
+    names(listFiles) <- rep("", length(listFiles))
+    # new working path
+    newWD <- dirname(selection[1])
+    setwd(newWD)
 
     return(listFiles)
 }
@@ -489,4 +405,12 @@ OrderConditions <- function(DataTable)
         VecIndices <- c(VecIndices, which(DataTable$Conditions == condition))
     }
     return(VecIndices)
+}
+
+
+clc <- function()
+# Clear screen function for terminal
+{
+    return(cat("\n\n\n\n\n\n\n\n"))
+    # return(cat("\014"))
 }

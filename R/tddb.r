@@ -5,11 +5,11 @@
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
 ###       MODULE NAME         tddb.r                                         ###
-###       VERSION             0.9.1                                          ###
+###       VERSION             0.10                                           ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
-###       DATE                2016/01/13                                     ###
+###       DATE                2016/02/24                                     ###
 ###       PLATFORM            Windows 7 & Gnu/Linux 3.16                     ###
 ###       R VERSION           R 3.1.1                                        ###
 ###       REQUIRED PACKAGES   ggplot2, grid, MASS, nlstools, scales          ###
@@ -133,21 +133,20 @@ OxideLifetimeModelization <- function(DataTable, DeviceID)
 # TTF =
 #
 # Data(TTF,Status,Probability,Conditions,Stress,Temperature, Dimension)
+# Data have to be cleaned upfront. Only valid data (status==1) should be given.
 {
-    # Remove the units where status is 0
-    CleanDataTable <- DataTable[DataTable$Status==1,]
     # Modelization
-    Model <- ModelFit(CleanDataTable, Law="TDDB")
+    Model <- ModelFit(DataTable, Law="TDDB")
 
     # List the number of different area used during tests.
-    ListArea <- levels(as.factor(CleanDataTable$Area))
+    ListArea <- levels(as.factor(DataTable$Area))
 
     # Table initialization
     ModelDataTable <- data.frame()
 
     # Model calculation for each area and for each condition.
     for (area in ListArea){
-        ListConditions <- levels(CleanDataTable$Conditions[CleanDataTable$Area == area])
+        ListConditions <- levels(DataTable$Conditions[DataTable$Area == area])
         ModelDataTable <- rbind(ModelDataTable, CreateModelDataTable(Model, ListConditions, as.numeric(area), Law="TDDB", Scale="Weibull"))
     }
 
@@ -180,7 +179,7 @@ OxideLifetimeModelization <- function(DataTable, DeviceID)
 #' OxideTDDB()
 #' OxideTDDB(ErrorBand=FALSE)
 #' @author Emmanuel Chery, \email{emmanuel.chery@@ams.com}
-#' @import ggplot2 MASS scales grid nlstools
+#' @import ggplot2 MASS scales nlstools tcltk
 #' @export
 OxideTDDB <- function(ErrorBand=FALSE, ConfidenceValue=0.95, Save=TRUE)
 {
@@ -189,7 +188,10 @@ OxideTDDB <- function(ErrorBand=FALSE, ConfidenceValue=0.95, Save=TRUE)
     options(warn = -1)
     #rm(list=ls())
     # ListFiles <- list.files(pattern="k_T.*txt$")
-    ListFiles <- SelectFiles()
+
+    # Filters for file selection
+    Filters <- matrix(c("All files", "*", "Text", ".txt"),2, 2, byrow = TRUE)
+    ListFiles <- SelectFilesAdvanced(Filters)
     #DeviceID <- strsplit(ListFiles[1],split="_")[[1]][2]
     # case 1, there are one or several files available
     if (length(ListFiles) != 0){
@@ -203,15 +205,28 @@ OxideTDDB <- function(ErrorBand=FALSE, ConfidenceValue=0.95, Save=TRUE)
 
               if (class(DataTable) != "try-error"){
                   # Reading the file was ok.
+
+                  # Modelization, errorBands calculation and Graph is made with a clean table where only failed samples are kept.
+                  # DataTable is kept in order to be saved in fit.txt
+                  CleanExpDataTable <- KeepOnlyFailed(DataTable)
+
                   # Attempt to modelize. If succes, we plot the chart, otherwise we only plot the data.
-                  ModelDataTable <- try(OxideLifetimeModelization(DataTable, DeviceID),silent=TRUE)
+                  ModelDataTable <- try(OxideLifetimeModelization(CleanExpDataTable, DeviceID),silent=TRUE)
                   # Check if the modelization is a succes
                   if (class(ModelDataTable) != "try-error"){
-                      ErrorDataTable <- ErrorEstimation(DataTable, ModelDataTable, ConfidenceValue, Scale="Weibull")
-                      CreateGraph(DataTable,ModelDataTable,ErrorDataTable,DeviceID,Scale="Weibull",ErrorBand,Save)
+                      if (ErrorBand) {
+                          ErrorDataTable <- ErrorEstimation(CleanExpDataTable, ModelDataTable, ConfidenceValue, Scale="Weibull")
+                      } else {
+                          ErrorDataTable <- NULL
+                      }
+                      CreateGraph(CleanExpDataTable, ModelDataTable, ErrorDataTable, aesVec = c("TTF", "Probability", "Conditions"), title = DeviceID,
+                          axisTitles = c("Time to Failure (s)","Probability (%)"), scale.x = "Log", scale.y = "Weibull", save = Save)
+                      # ExpData are added to the fit.txt file created during modelization
+                      SaveData2File(DataTable, "fit.txt")
                   } else { # if modelization is not a success, we display the data and return parameters of the distribution in the console (scale and loc) in case user need them.
-                      ModelDataTable <- FitDistribution(DataTable,Scale="Weibull")
-                      CreateGraph(DataTable,ModelDataTable,DataTable,DeviceID,Scale="Weibull",ErrorBand=FALSE,Save=FALSE)
+                      ModelDataTable <- FitDistribution(CleanExpDataTable,Scale="Weibull")
+                      CreateGraph(CleanExpDataTable, ModelDataTable, aesVec = c("TTF", "Probability", "Conditions"), title = DeviceID,
+                          axisTitles = c("Time to Failure (s)","Probability (%)"), scale.x = "Log", scale.y = "Weibull", save = FALSE)
                   }
               } else { # reading files returned an error
                   print("Error detected in the file(s) you selected. Please check your selection.")

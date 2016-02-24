@@ -5,11 +5,11 @@
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
 ###       MODULE NAME         exportFiles.r                                  ###
-###       VERSION             0.9.1                                          ###
+###       VERSION             0.10                                           ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
-###       DATE                2016/01/13                                     ###
+###       DATE                2016/02/24                                     ###
 ###       PLATFORM            Windows 7 & Gnu/Linux 3.16                     ###
 ###       R VERSION           R 3.1.1                                        ###
 ###       REQUIRED PACKAGES   ggplot2, grid, MASS, nlstools, scales          ###
@@ -217,8 +217,11 @@ CreateExportFiles <- function()
     # Device and Width parameters
     ListDevice <- try(read.delim("//fsup04/fntquap/Common/Qual/Process_Reliability/Process/amsReliability_R_Package/ListDeviceName.txt"),silent=TRUE)
     # File to be read
-    ListDegFiles <- list.files(pattern="*deg.txt")
-    ListTCRFiles <- list.files(pattern="*TCR.txt")
+    # ListDegFiles <- list.files(pattern="*deg.txt")
+    # ListTCRFiles <- list.files(pattern="*TCR.txt")
+    listFilesSelected <- ExportFilesCleverSelection()
+    ListDegFiles <- listFilesSelected[[1]]
+    ListTCRFiles <- listFilesSelected[[2]]
 
     # Check if ListDeviceName.txt was available
     if (class(ListDevice)=="try-error"){
@@ -258,4 +261,41 @@ CreateExportFiles <- function()
             }
         }
     }
+}
+
+
+ExportFilesCleverSelection <- function()
+# Handle in a clever way the selection of ExportFiles
+# Will try to match files so that user can only select the deg or the TCR file.
+# return a vector with both lists of files: list(listDeg, listTCR)
+{
+    filters <- matrix(c("All files", "*", "Text", ".txt", "TCR Files", "*TCR.txt", "deg Files", "*deg.txt"),4, 2, byrow = TRUE)
+    fileSelected <- SelectFilesAdvanced(filters)
+
+    # Remove the deg or TCR part and keep only one occurence of each name
+    fileSelected <- unique(sapply(fileSelected,function(x){substr(x,1,nchar(x)-7)}))
+    # add TCR and deg
+    listTCR <- paste(fileSelected,"TCR.txt",sep="")
+    listDeg <- paste(fileSelected,"deg.txt",sep="")
+    # check if existant in the global list
+    globalList <- list.files(pattern="*.txt")
+
+    rangTCR <- lapply(listTCR,function(x){grep(x, globalList)}) # list of positions if present. 0 otherwise.
+    rangTCR <- sapply(rangTCR, function(x) length(x) > 0) # Vector of booleans
+    rangDeg <- lapply(listDeg,function(x){grep(x, globalList)})
+    rangDeg <- sapply(rangDeg, function(x) length(x) > 0)
+
+    # Inform user about missing files:
+    if (sum(rangTCR == 0) > 0){
+        print(paste("File", listTCR[!rangTCR], "is missing!", sep=" "))
+    }
+
+    if (sum(rangDeg == 0) > 0){
+        print(paste("File", listDeg[!rangDeg], "is missing!", sep=" "))
+    }
+
+    # rangDeg & rangTCR return only the files where both the TCR and the deg files exists.
+    listTCR <- listTCR[rangDeg & rangTCR]
+    listDeg <- listDeg[rangDeg & rangTCR]
+    return(list(listDeg, listTCR))
 }

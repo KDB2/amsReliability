@@ -8,7 +8,13 @@
 }
 \details{
 
-3 functions are currently available within this package.
+A graphical user interface is provided in this package in order to help users to access the different analyses available. To start this GUI, user should use the \bold{RelAnalysis} function:
+
+> \bold{RelAnalysis()}
+
+
+
+Additionally, 3 functions are currently available within this package and can be accessed manually.
 
 \bold{CreateExportFiles}: Automatically creates the exportfiles for a set of electromigration experiments
 by using degradation and TCR files provided by Qualitau ACE and MIRA equipments.

@@ -1,8 +1,8 @@
 Package: amsReliability
 Type: Package
 Title: ams AG Reliability Analysis Package
-Version: 0.9.1
-Date: 2016-02-02
+Version: 0.10
+Date: 2016-02-24
 Author: Emmanuel Chery
 Maintainer: <emmanuel.chery@ams.com>
 Description: Allow the analysis of process reliability data. Key parameters of
@@ -10,6 +10,6 @@ Description: Allow the analysis of process reliability data. Key parameters of
 License: GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 LazyData: TRUE
 Depends:
-    ggplot2,MASS,scales,grid,nlstools,tcltk
+    ggplot2,MASS,scales,nlstools,tcltk
 Encoding: UTF-8
-RoxygenNote: 5.0.0
+RoxygenNote: 5.0.1

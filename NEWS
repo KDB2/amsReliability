@@ -1,3 +1,17 @@
+amsReliability v0.10 (Release date: 2016-02-24)
+==============
+
+Changes:
+* GUI available to select the analysis to perform. Options are available using the GUI.
+* Auto-update function is available using the GUI. 
+* Major code cleanup in the graphics librairy for reusability accross charts type (probability vs degradation charts). 
+* Graphic function accepts the column to be displayed as arguments. Allows various names to be used as legend title.
+* Exportfile creating is handle in a clever way. Function will match available files, to produce an exportfile if only the degradation or the TCR file was selected.
+* Passing a empty file as argument will more crash the analysis. Conditions without fails are dropped.
+* Censors are handled correctly. Fails with a higher TTF than a nonfailed sample will not be displayed/considered in analysis. 
+* Fit results now display more information (log likelyhood ratio, AIC and BIC) in order to help comparing models.
+
+
 amsReliability v0.9.1 (Release date: 2016-02-02)
 ==============
 
