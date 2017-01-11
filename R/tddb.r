@@ -5,7 +5,7 @@
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
 ###       MODULE NAME         tddb.r                                         ###
-###       VERSION             0.10                                           ###
+###       VERSION             0.10.1                                           ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
@@ -146,15 +146,11 @@ OxideLifetimeModelization <- function(DataTable, DeviceID)
 
     # Model calculation for each area and for each condition.
     for (area in ListArea){
-        ListConditions <- levels(DataTable$Conditions[DataTable$Area == area])
+        ListConditions <- levels(factor(DataTable$Conditions[DataTable$Area == area]))
         ModelDataTable <- rbind(ModelDataTable, CreateModelDataTable(Model, ListConditions, as.numeric(area), Law="TDDB", Scale="Weibull"))
     }
 
-    # if several length are used, stickers are adapted
-    if (length(ListArea) != 1){
-        ModelDataTable$Conditions <- paste(ModelDataTable$Conditions,"/", ModelDataTable$Area /1000, "k" , sep="")
-    }
-
+	
     # Display information about fit: parameters, goodness of fit...
     FitResultsDisplay(Model, DataTable, DeviceID)
 

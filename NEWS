@@ -1,3 +1,10 @@
+amsReliability v0.10.1 (Release date: 2017-01-11)
+==============
+
+Changes:
+* Fix bug in TDDB chart when several areas are available. Avoid calculation of models for non existant series (Stress/Temp/area).
+
+
 amsReliability v0.10 (Release date: 2016-02-24)
 ==============
 
