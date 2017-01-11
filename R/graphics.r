@@ -129,7 +129,7 @@ GraphBase <- function(graph, title)
     graph <- graph + theme(legend.key = element_rect(fill="gray90", colour = "black", linetype=0))
     # Add a title
     graph <- graph + ggtitle(title)
-    graph <- graph + theme(plot.title = element_text(face="bold", size=18))
+    graph <- graph + theme(plot.title = element_text(face="bold", size=18, hjust=0.5))
     # Font size
     graph <- graph + theme(axis.title.x = element_text(face="bold", size=16))
     graph <- graph + theme(axis.title.y = element_text(face="bold", size=16))

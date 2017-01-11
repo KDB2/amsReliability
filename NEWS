@@ -1,3 +1,9 @@
+amsReliability v0.10.2 (Release date: 2017-01-11)
+==============
+
+Changes:
+* Fix bug introduced by ggplot2 2.2.0. "The main plot title is now left-aligned to better work better with a subtitle". Plot title is centered again.
+
 amsReliability v0.10.1 (Release date: 2017-01-11)
 ==============
 
