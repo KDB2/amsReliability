@@ -1,3 +1,10 @@
+amsReliability v0.10.3 (Release date: 2017-01-12)
+==============
+
+Changes:
+* Fix sorting conditions when conditions stickers have more than 2 items.
+
+
 amsReliability v0.10.2 (Release date: 2017-01-11)
 ==============
 

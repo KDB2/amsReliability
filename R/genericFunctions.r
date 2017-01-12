@@ -5,7 +5,7 @@
 ###                                                                          ###
 ###       PACKAGE NAME        amsReliability                                 ###
 ###       MODULE NAME         genericFunctions.r                             ###
-###       VERSION             0.10                                           ###
+###       VERSION             0.10.3                                           ###
 ###                                                                          ###
 ###       AUTHOR              Emmanuel Chery                                 ###
 ###       MAIL                emmanuel.chery@ams.com                         ###
@@ -374,23 +374,25 @@ SelectFilesAdvanced <- function(Filters)
 }
 
 
-SortConditions <- function(ListConditions)
-# Sort a list of conditions to avoid 6mA being
-# bigger as 14mA
-# Return a list of Conditions sorted.
+SortConditions <- function(listConditions)
+  # Sort a list of conditions to avoid 6mA being bigger as 14mA
+  # Return a list of Conditions sorted.
+  # explode a condition in a list of number and sort them from 
+  # right to left.
+  # Needs stringr package
 {
-  Temperature <- sapply(ListConditions,function(x){strsplit(x,split="[mAV]*/")[[1]][2]})
-  Temperature <- as.numeric(sapply(Temperature,function(x){substr(x,1, nchar(x)-2)}))
-  Currents <- as.numeric(sapply(ListConditions,function(x){strsplit(x,split="[mAV]*/")[[1]][1]}))
-  Table <- data.frame("Conditions"=ListConditions,"Current"=Currents,"Temperature"=Temperature)
-  Table <-  Table[order(Table$Temperature),]
-  ListCurrents <- levels(factor(Currents))
-
-  SortedTable <- data.frame()
-  for (current in ListCurrents){
-    SortedTable <-  rbind(SortedTable,Table[Table$Current==current,])
+  table <- data.frame()
+  for (condition in listConditions){
+    table <- rbind(table, data.frame(condition, t(str_extract_all(condition, pattern="[0-9.]{1,}")[[1]])))
   }
-  return(as.character(SortedTable$Conditions))
+  
+  
+  # Sort strating by last column
+  for (i in seq(dim(table)[2], 2) ){ # we start from last colum and stop at column 2
+    table <-  table[order(as.numeric(as.character(table[[i]]))),]
+  }
+  
+  return(as.character(table$condition))
 }
 
 
