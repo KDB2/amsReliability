@@ -1,3 +1,10 @@
+amsReliability v0.10.4 (Release date: 2017-11-22)
+==============
+
+Changes:
+* Add the lot number and wafer number in the electromigration exportfiles when available.
+
+
 amsReliability v0.10.3 (Release date: 2017-01-12)
 ==============
 

@@ -52,9 +52,9 @@ CreateExportFiles.Ace <- function(DegFileName,TCRFileName)
     DegFile <- read.delim(DegFileName,sep="")
     names(DegFile) = c("Device","Failed","Lifetime[s]","StressTemp[K]","Positive Current[A]","Negative Current[A]","Duty Cycle","Pulse Width","Stress Type")
     TCRFile <- read.delim(TCRFileName,sep="",skip=1)
-    names(TCRFile) = c("Device","Rref[Ohm]","TCR[%/°C]","Rref[Ohm](High I)","TCR[%/°C](High I)","Rref[Ohm](Low I)","TCR[%/°C](Low I)","R[Ohm] (stress)","Temperature[°C](High I)","Temperature[°C](Low I)","Temperature[°C](Opt)","R[Ohm](Init Temp Low I)","R[Ohm](stress Temp Low I)","R[Ohm](stress Temp High I)")
+    names(TCRFile) = c("Device","Rref[Ohm]","TCR[%/°C]","Rref[Ohm](High I)","TCR[%/°C](High I)","Rref[Ohm](Low I)","TCR[%/°C](Low I)","R[Ohm] (stress)","Temperature[°C](High I)","Temperature[°C](Low I)","Temperature[°C](Opt)","R[Ohm](Init Temp Low I)","R[Ohm](stress Temp Low I)","R[Ohm](stress Temp High I)", "Lot Number", "Wafer Number")
 
-    # This section allows to work with degradation file were several conditions have been stored.
+    # This section allows to work with degradation file where several conditions have been stored.
     # Creation of the condition vector. A condition is a couple current/Temperature
     Conditions <- factor(paste(DegFile[,5]*1E3,"mA/",DegFile[,4]-273.16,"°C",sep=""))
     # Add Conditions to both tables. Will be used to sort them.
@@ -81,8 +81,8 @@ CreateExportFiles.Ace <- function(DegFileName,TCRFileName)
         W <- ListDevice$Width[ListDevice$Device==DeviceID]
 
         # DataFrame creation
-        NewFile <- data.frame(DegFile[DegFile$Conditions == levels(Conditions)[i],1:3],Split,Istress,L,W,Temp,DeviceID,TCRFile[TCRFile$Conditions == levels(Conditions)[i],2:14])
-        names(NewFile) <- c("Device","Failed","Lifetime[s]","Split","Istress","L","W","Temp","DeviceID","Rref[Ohm]","TCR[%/°C]","Rref[Ohm](High I)","TCR[%/°C](High I)","Rref[Ohm](Low I)","TCR[%/°C](Low I)","R[Ohm] (stress)","Temperature[°C](High I)","Temperature[°C](Low I)","Temperature[°C](Opt)","R[Ohm](Init Temp Low I)","R[Ohm](stress Temp Low I)","R[Ohm](stress Temp High I)")
+        NewFile <- data.frame(DegFile[DegFile$Conditions == levels(Conditions)[i],1:3],Split,Istress,L,W,Temp,DeviceID,TCRFile[TCRFile$Conditions == levels(Conditions)[i],2:16])
+        names(NewFile) <- c("Device","Failed","Lifetime[s]","Split","Istress","L","W","Temp","DeviceID","Rref[Ohm]","TCR[%/°C]","Rref[Ohm](High I)","TCR[%/°C](High I)","Rref[Ohm](Low I)","TCR[%/°C](Low I)","R[Ohm] (stress)","Temperature[°C](High I)","Temperature[°C](Low I)","Temperature[°C](Opt)","R[Ohm](Init Temp Low I)","R[Ohm](stress Temp Low I)","R[Ohm](stress Temp High I)", "Lot Number", "Wafer Number")
 
         # Saving in a file
         FileName <- paste(strsplit(DegFileName,split="_")[[1]][1],"_",DeviceID,"_",Istress[1],"mA_",Temp[1],"C_exportfile.txt",sep="")
